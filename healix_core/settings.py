@@ -118,3 +118,15 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# ```
+
+### What to Do Next (Final Steps)
+
+# 1.  **Save the file**: The `settings.py` file in the Canvas is now correct.
+# 2.  **Commit and push this final change** to your GitHub repository:
+#     ```bash
+#     git add healix_core/settings.py
+#     git commit -m "Feat: Dynamically configure ALLOWED_HOSTS for Render"
+#     git push
+    
+
