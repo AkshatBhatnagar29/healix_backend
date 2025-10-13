@@ -132,4 +132,19 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 #     git commit -m "Fix: Add CSRF_TRUSTED_ORIGINS for production"
 #     git push
     
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        # Use 'INFO' to capture more details, or 'WARNING' for less noise in production.
+        'level': 'INFO',
+    },
+}
+
 
