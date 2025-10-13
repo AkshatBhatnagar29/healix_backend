@@ -1,10 +1,10 @@
-# from pathlib import Path
+from pathlib import Path
 import os
 from dotenv import load_dotenv
 from decouple import config, Csv
 import dj_database_url
 from datetime import timedelta
-from pathlib import Path
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -16,10 +16,14 @@ SECRET_KEY = config('SECRET_KEY')
 # DEBUG is set to False in production by default
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-# --- CORRECTED ALLOWED_HOSTS ---
-# In production, Render will provide this as an environment variable.
-# For local dev, you can add 'localhost,127.0.0.1' to your .env file
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
+# --- FINAL, ROBUST ALLOWED_HOSTS CONFIGURATION ---
+ALLOWED_HOSTS = []
+RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default=None)
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+# Also add hosts from the .env file for local development
+ALLOWED_HOSTS.extend(config('ALLOWED_HOSTS', default='', cast=Csv()))
 
 
 # --- Application definition ---
@@ -70,17 +74,15 @@ TEMPLATES = [
 WSGI_APPLICATION = 'healix_core.wsgi.application'
 
 
-# --- CORRECTED DATABASE CONFIGURATION ---
-# This will now use the DATABASE_URL from Render's environment variables.
+# --- Database Configuration ---
 DATABASES = {
     'default': dj_database_url.config(
-        # Fallback to a local SQLite database if DATABASE_URL is not set
         default='sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3'),
         conn_max_age=600
     )
 }
 
-# --- Password validation, Internationalization, etc. (unchanged) ---
+# --- Password validation, Internationalization, etc. ---
 AUTH_PASSWORD_VALIDATORS = []
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
