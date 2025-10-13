@@ -224,7 +224,7 @@ def send_otp_email(user):
     try:
         send_mail(subject, message, from_email, recipient_list)
         print(f"OTP {otp} sent to {user.email}")
-        return otp
+    
     except Exception as e:
         print(f"Error sending OTP to {user.email}: {e}")
     pass 
