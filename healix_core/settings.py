@@ -25,6 +25,10 @@ if RENDER_EXTERNAL_HOSTNAME:
 # Also add hosts from the .env file, including your custom domain
 ALLOWED_HOSTS.extend(config('ALLOWED_HOSTS', default='', cast=Csv()))
 
+# --- CSRF Configuration for Production (THE FIX) ---
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS = ['https://' + RENDER_EXTERNAL_HOSTNAME]
+
 
 # --- Application definition ---
 INSTALLED_APPS = [
@@ -120,13 +124,12 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 # ```
 
-### What to Do Next
+# ### What to Do Next
 
-# 1.  **Replace the file**: Copy the code above and replace the entire contents of your `healix_core/settings.py` file.
-# 2.  **Commit and Push**: Save the file, then commit and push this change to your GitHub repository.
+# 1.  **Commit and Push**: Save the updated `settings.py` file, then commit and push this change to your GitHub repository.
 #     ```bash
 #     git add healix_core/settings.py
-#     git commit -m "Fix: Finalize production settings for WhiteNoise"
+#     git commit -m "Fix: Add CSRF_TRUSTED_ORIGINS for production"
 #     git push
     
 
