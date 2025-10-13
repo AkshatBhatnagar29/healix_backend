@@ -22,7 +22,7 @@ RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default=None)
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
-# Also add hosts from the .env file for local development
+# Also add hosts from the .env file, including your custom domain
 ALLOWED_HOSTS.extend(config('ALLOWED_HOSTS', default='', cast=Csv()))
 
 
@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'whitenoise.runserver_nostatic', # For serving static files
+    'whitenoise.runserver_nostatic', # For serving static files in development
     'django.contrib.staticfiles',
     # Third-party apps
     'rest_framework',
@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # WhiteNoise middleware
+    'whitenoise.middleware.WhiteNoiseMiddleware', # WhiteNoise middleware is crucial
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -118,15 +118,15 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-# ```
+```
 
-### What to Do Next (Final Steps)
+### What to Do Next
 
-# 1.  **Save the file**: The `settings.py` file in the Canvas is now correct.
-# 2.  **Commit and push this final change** to your GitHub repository:
+# 1.  **Replace the file**: Copy the code above and replace the entire contents of your `healix_core/settings.py` file.
+# 2.  **Commit and Push**: Save the file, then commit and push this change to your GitHub repository.
 #     ```bash
 #     git add healix_core/settings.py
-#     git commit -m "Feat: Dynamically configure ALLOWED_HOSTS for Render"
+#     git commit -m "Fix: Finalize production settings for WhiteNoise"
 #     git push
     
 
