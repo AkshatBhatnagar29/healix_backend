@@ -508,84 +508,6 @@ class SOSCreateView(generics.CreateAPIView):
         if SOSAlert.objects.filter(student=self.request.user, status__in=['Active', 'Acknowledged']).exists():
             raise serializer.ValidationError("You already have an active emergency alert.")
         serializer.save(student=self.request.user)
-        
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, pk, action):
-        try:
-            alert = SOSAlert.objects.get(pk=pk)
-        except SOSAlert.DoesNotExist:
-            return Response({'error': 'Alert not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-        user = request.user
-
-        if action == 'acknowledge':
-            if user.role not in ['doctor', 'staff']:
-                return Response({'error': 'You are not authorized to acknowledge alerts.'}, status=status.HTTP_403_FORBIDDEN)
-            if alert.status != 'Active':
-                 return Response({'error': 'This alert has already been acknowledged or resolved.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            alert.status = 'Acknowledged'
-            alert.acknowledged_by = user
-            alert.save()
-            return Response(SOSAlertSerializer(alert).data, status=status.HTTP_200_OK)
-
-        elif action == 'resolve':
-            if alert.student != user:
-                return Response({'error': 'You can only resolve your own alerts.'}, status=status.HTTP_403_FORBIDDEN)
-
-            alert.status = 'Resolved'
-            alert.resolved_at = timezone.now()
-            alert.save()
-            return Response(SOSAlertSerializer(alert).data, status=status.HTTP_200_OK)
-
-        return Response({'error': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
-
-class SOSActiveListView(generics.ListAPIView):
-    serializer_class = SOSAlertSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = SOSAlert.objects.filter(status__in=['Active', 'Acknowledged']).order_by('-alert_time')
-
-        if user.role == 'staff':
-            return queryset.filter(student__student_profile__hostel__caretaker=user)
-        elif user.role == 'student':
-            return queryset.filter(student=user)
-        # Doctors see all alerts
-        return queryset
-
-
-
-   
-
-
-# ------------------ TEST EMAIL (Resend API) ------------------
-def test_email(request):
-    try:
-        response = requests.post(
-            "https://api.resend.com/emails",
-            headers={
-                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "from": settings.DEFAULT_FROM_EMAIL,
-                "to": ["akshatbhatnagar797@gmail.com"],
-                "subject": "Render Email Test",
-                "text": "This is a test email sent from Healix backend hosted on Render using Resend API.",
-            },
-        )
-        return JsonResponse({'status': 'success', 'response': response.json()})
-    except Exception as e:
-        return JsonResponse({'error': str(e)})
-
-
-class SendSOSMailView(APIView):
-    """
-    API endpoint to send SOS email using Resend service.
-    """
 
     def post(self, request):
         location = request.data.get('location')
@@ -634,3 +556,78 @@ class SendSOSMailView(APIView):
                 return Response({'success': False, 'error': response.text}, status=response.status_code)
         except Exception as e:
             return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class SOSActiveListView(generics.ListAPIView):
+    serializer_class = SOSAlertSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = SOSAlert.objects.filter(status__in=['Active', 'Acknowledged']).order_by('-alert_time')
+
+        if user.role == 'staff':
+            return queryset.filter(student__student_profile__hostel__caretaker=user)
+        elif user.role == 'student':
+            return queryset.filter(student=user)
+        # Doctors see all alerts
+        return queryset
+
+
+class SOSActionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk, action):
+        try:
+            alert = SOSAlert.objects.get(pk=pk)
+        except SOSAlert.DoesNotExist:
+            return Response({'error': 'Alert not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+
+        if action == 'acknowledge':
+            if user.role not in ['doctor', 'staff']:
+                return Response({'error': 'You are not authorized to acknowledge alerts.'}, status=status.HTTP_403_FORBIDDEN)
+            if alert.status != 'Active':
+                 return Response({'error': 'This alert has already been acknowledged or resolved.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            alert.status = 'Acknowledged'
+            alert.acknowledged_by = user
+            alert.save()
+            return Response(SOSAlertSerializer(alert).data, status=status.HTTP_200_OK)
+
+        elif action == 'resolve':
+            if alert.student != user:
+                return Response({'error': 'You can only resolve your own alerts.'}, status=status.HTTP_403_FORBIDDEN)
+
+            alert.status = 'Resolved'
+            alert.resolved_at = timezone.now()
+            alert.save()
+            return Response(SOSAlertSerializer(alert).data, status=status.HTTP_200_OK)
+
+        return Response({'error': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ------------------ TEST EMAIL (Resend API) ------------------
+def test_email(request):
+    try:
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": settings.DEFAULT_FROM_EMAIL,
+                "to": ["akshatbhatnagar797@gmail.com"],
+                "subject": "Render Email Test",
+                "text": "This is a test email sent from Healix backend hosted on Render using Resend API.",
+            },
+        )
+        return JsonResponse({'status': 'success', 'response': response.json()})
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+
+
+
+
+    
