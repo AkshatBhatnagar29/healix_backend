@@ -387,10 +387,10 @@ from .serializers import (
     SOSAlertSerializer,
     StudentProfileSerializer
 )
-from rest_framework.exceptions import ValidationError
+# from rest_framework.exceptions import ValidationError
 
 # inside your perform_create
-raise ValidationError("You already have an active emergency alert.")
+# raise ValidationError("You already have an active emergency alert.")
 # ------------------ STUDENT PROFILE ------------------
 class StudentProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = StudentProfileSerializer
