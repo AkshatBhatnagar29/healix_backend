@@ -25,7 +25,7 @@ from .views import (
     SOSActionView,
     StudentProfileView,
     test_email ,
-    SendSOSMailView,
+    
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -45,6 +45,6 @@ urlpatterns = [
 
     # --- 2. ADD THE URL ROUTE FOR THE PROFILE ---
     path('profile/student/', StudentProfileView.as_view(), name='student-profile'),
-    path('sos/send-email/', SendSOSMailView.as_view(), name='send_sos_email'),
+    path('sos/send-email/', SOSCreateView.as_view(), name='send_sos_email'),
 ]
 

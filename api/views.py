@@ -508,25 +508,7 @@ class SOSCreateView(generics.CreateAPIView):
         if SOSAlert.objects.filter(student=self.request.user, status__in=['Active', 'Acknowledged']).exists():
             raise serializer.ValidationError("You already have an active emergency alert.")
         serializer.save(student=self.request.user)
-
-
-class SOSActiveListView(generics.ListAPIView):
-    serializer_class = SOSAlertSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = SOSAlert.objects.filter(status__in=['Active', 'Acknowledged']).order_by('-alert_time')
-
-        if user.role == 'staff':
-            return queryset.filter(student__student_profile__hostel__caretaker=user)
-        elif user.role == 'student':
-            return queryset.filter(student=user)
-        # Doctors see all alerts
-        return queryset
-
-
-class SOSActionView(APIView):
+        
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk, action):
@@ -558,6 +540,25 @@ class SOSActionView(APIView):
             return Response(SOSAlertSerializer(alert).data, status=status.HTTP_200_OK)
 
         return Response({'error': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
+
+class SOSActiveListView(generics.ListAPIView):
+    serializer_class = SOSAlertSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = SOSAlert.objects.filter(status__in=['Active', 'Acknowledged']).order_by('-alert_time')
+
+        if user.role == 'staff':
+            return queryset.filter(student__student_profile__hostel__caretaker=user)
+        elif user.role == 'student':
+            return queryset.filter(student=user)
+        # Doctors see all alerts
+        return queryset
+
+
+
+   
 
 
 # ------------------ TEST EMAIL (Resend API) ------------------
