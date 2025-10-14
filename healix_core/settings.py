@@ -175,6 +175,7 @@ ALLOWED_HOSTS.extend(config('ALLOWED_HOSTS', default='', cast=Csv()))
 CSRF_TRUSTED_ORIGINS = [
     'https://healixind.xyz',
     'https://www.healixind.xyz',
+    'https://healix-backend-goc4.onrender.com',
 ]
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
@@ -302,6 +303,7 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ------------------------------------------------------------
 # LOGGING (Optional - helps debug Render issues)
