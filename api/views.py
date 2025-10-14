@@ -350,3 +350,19 @@ class SOSActionView(APIView):
     
 # class MyTokenObtainPairView(TokenObtainPairView):
 #     serializer_class = MyTokenObtainPairSerializer
+# api/views.py
+from django.core.mail import send_mail
+from django.http import JsonResponse
+
+def test_email(request):
+    try:
+        send_mail(
+            'Render Email Test',
+            'This is a test email from Healix hosted on Render.',
+            'your_email@gmail.com',
+            ['your_email@gmail.com'],
+            fail_silently=False,
+        )
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)})

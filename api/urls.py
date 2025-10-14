@@ -23,12 +23,15 @@ from .views import (
     SOSCreateView,
     SOSActiveListView,
     SOSActionView,
-    StudentProfileView, # <-- 1. IMPORT THE NEW VIEW
+    StudentProfileView,
+    test_email ,# <-- 1. IMPORT THE NEW VIEW
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     # Auth
+    path('test-email/', test_email),
+
     path('signup/', SignupView.as_view(), name='signup'),
     path('verify-otp/', VerifyOtpView.as_view(), name='verify-otp'),
     path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
