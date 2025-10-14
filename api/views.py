@@ -359,8 +359,8 @@ def test_email(request):
         send_mail(
             'Render Email Test',
             'This is a test email from Healix hosted on Render.',
-            'your_email@gmail.com',
-            ['your_email@gmail.com'],
+            'akshatbhatnagar797@gmail.com',
+            ['akshatbhatnagar797@gmail.com'],
             fail_silently=False,
         )
         return JsonResponse({'status': 'success'})
