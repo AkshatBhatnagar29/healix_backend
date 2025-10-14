@@ -45,7 +45,7 @@ urlpatterns = [
     path('sos/<int:pk>/<str:action>/', SOSActionView.as_view(), name='sos-action'),
 
     # --- 2. ADD THE URL ROUTE FOR THE PROFILE ---
-    path('profile/student/', StudentProfileView.as_view(), name='student-profile'),
+    path('student/profile/', StudentProfileView.as_view(), name='student-profile'),
     path('sos/send-email/', SendSOSMailView.as_view(), name='send_sos_email'),
 ]
 

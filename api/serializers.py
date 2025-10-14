@@ -80,19 +80,26 @@ from .models import User, StudentProfile, DoctorProfile, StaffProfile, SOSAlert
 
 # --- NEW: Serializer for Student Profile ---
 class StudentProfileSerializer(serializers.ModelSerializer):
+    # Add user-related fields from the linked User model
+    name = serializers.CharField(source='user.name', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+
     class Meta:
         model = StudentProfile
-        # List all fields the user is allowed to view and edit
         fields = [
-            'roll_number', 
-            'hostel_details', 
-            'date_of_birth', 
-            'allergies', 
-            'bmi', 
-            'water_intake', 
+            'name',
+            'username',
+            'email',
+            'roll_number',
+            'hostel_details',
+            'date_of_birth',
+            'allergies',
+            'bmi',
+            'water_intake',
             'sleep_hours'
         ]
-        read_only_fields = ['roll_number']
+        read_only_fields = ['roll_number', 'name', 'username', 'email']
 
 # --- Serializer for User Signup ---
 class UserSerializer(serializers.ModelSerializer):

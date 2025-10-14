@@ -590,9 +590,9 @@ class SendSOSMailView(APIView):
         email_body = (
             f"URGENT SOS ALERT!\n\n"
             # f"Student Name: {student_name}\n"
-            f"Username/ID: {student_username}\n"
+            # f"Username/ID: {student_username}\n"
             # f"Location: {location}\n\n"
-            f"Please respond immediately."
+            f"Room No. 256 .Please respond immediately."
         )
 
         payload = {
