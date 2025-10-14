@@ -80,7 +80,7 @@ from .models import User, StudentProfile, DoctorProfile, StaffProfile, SOSAlert
 
 # --- NEW: Serializer for Student Profile ---
 class StudentProfileSerializer(serializers.ModelSerializer):
-    # Add user-related fields from the linked User model
+    # These fields come from the related User model
     name = serializers.CharField(source='user.name', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
@@ -88,9 +88,10 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentProfile
         fields = [
-            
             'roll_number',
-            
+            'name',        # from User
+            'username',    # from User
+            'email',       # from User
             'date_of_birth',
             'allergies',
             'bmi',
@@ -98,7 +99,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'sleep_hours',
             'hostel_id'
         ]
-        read_only_fields = ['roll_number']
+        read_only_fields = ['roll_number', 'name', 'username', 'email']
 
 # --- Serializer for User Signup ---
 class UserSerializer(serializers.ModelSerializer):
