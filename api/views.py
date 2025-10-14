@@ -566,9 +566,9 @@ class SendSOSMailView(APIView):
         student_username = request.data.get('username')
 
         # Validate required fields
-        if not all([location, student_name, student_username]):
-            return Response({'error': 'Location, name, and username are required'}, 
-                            status=status.HTTP_400_BAD_REQUEST)
+        # if not all([location, student_name, student_username]):
+        #     return Response({'error': 'Location, name, and username are required'}, 
+        #                     status=status.HTTP_400_BAD_REQUEST)
 
         # Hardcoded recipients
         recipients = ['akshatbhatnagar797@gmail.com','sakshamsingh601@gmail.com']
