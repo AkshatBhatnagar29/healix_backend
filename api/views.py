@@ -542,7 +542,7 @@ class SOSCreateView(generics.CreateAPIView):
         )
 
         payload = {
-            "from": "admin@healixind.xyz",
+            "from": "no-reply@healixind.xyz",
             "to": recipients,
             "subject": "URGENT: SOS Alert",
             "text": email_body
