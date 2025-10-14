@@ -88,18 +88,17 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentProfile
         fields = [
-            'name',
-            'username',
-            'email',
+            
             'roll_number',
-            'hostel_details',
+            
             'date_of_birth',
             'allergies',
             'bmi',
             'water_intake',
-            'sleep_hours'
+            'sleep_hours',
+            'hostel_id'
         ]
-        read_only_fields = ['roll_number', 'name', 'username', 'email']
+        read_only_fields = ['roll_number']
 
 # --- Serializer for User Signup ---
 class UserSerializer(serializers.ModelSerializer):
