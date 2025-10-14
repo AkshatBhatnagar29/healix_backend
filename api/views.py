@@ -564,8 +564,8 @@ class SendSOSMailView(APIView):
     """
 
     def post(self, request):
-        location = request.data.get('location_info')
-        student_name = request.data.get('name')
+        # location = request.data.get('location_info')
+        # student_name = request.data.get('name')
         student_username = request.data.get('username')
 
         # Validate required fields
@@ -589,9 +589,9 @@ class SendSOSMailView(APIView):
         # Email body with student details
         email_body = (
             f"URGENT SOS ALERT!\n\n"
-            f"Student Name: {student_name}\n"
+            # f"Student Name: {student_name}\n"
             f"Username/ID: {student_username}\n"
-            f"Location: {location}\n\n"
+            # f"Location: {location}\n\n"
             f"Please respond immediately."
         )
 
