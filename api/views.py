@@ -375,17 +375,21 @@ import requests
 from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
+from django.http import JsonResponse
 from rest_framework import status, generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
+
 from .models import User, SOSAlert, StudentProfile
 from .serializers import (
-    UserSerializer, MyTokenObtainPairSerializer,
-    SOSAlertSerializer, StudentProfileSerializer
+    UserSerializer,
+    MyTokenObtainPairSerializer,
+    SOSAlertSerializer,
+    StudentProfileSerializer
 )
 
-# --- Student profile view (unchanged) ---
+# ------------------ STUDENT PROFILE ------------------
 class StudentProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = StudentProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -394,17 +398,16 @@ class StudentProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user.student_profile
 
 
-# --- Send OTP via Resend API ---
+# ------------------ OTP EMAIL SENDER ------------------
 def send_otp_email(user):
     otp = random.randint(100000, 999999)
     otp_expiry = timezone.now() + timedelta(minutes=10)
 
-    # Save OTP and expiry to user
+    # Save OTP and expiry to user model
     user.otp_code = str(otp)
     user.otp_expiry = otp_expiry
     user.save()
 
-    # Prepare email
     subject = "Your Healix Verification Code"
     message = f"Your OTP for Healix account verification is: {otp}\nThis code expires in 10 minutes."
 
@@ -416,14 +419,14 @@ def send_otp_email(user):
                 "Content-Type": "application/json",
             },
             json={
-                "from": settings.DEFAULT_FROM_EMAIL,
+                "from": settings.DEFAULT_FROM_EMAIL,  # e.g. "no-reply@healixind.xyz"
                 "to": [user.email],
                 "subject": subject,
                 "text": message,
             },
         )
 
-        if response.status_code == 200 or response.status_code == 202:
+        if response.status_code in [200, 202]:
             print(f"✅ OTP {otp} sent successfully to {user.email}")
         else:
             print(f"❌ Failed to send OTP. Response: {response.text}")
@@ -432,7 +435,7 @@ def send_otp_email(user):
         print(f"⚠️ Error sending OTP to {user.email}: {e}")
 
 
-# --- Signup view (unchanged except using new send_otp_email) ---
+# ------------------ SIGNUP VIEW ------------------
 class SignupView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -442,7 +445,7 @@ class SignupView(generics.CreateAPIView):
         send_otp_email(user)
 
 
-# --- Verify OTP (unchanged) ---
+# ------------------ VERIFY OTP ------------------
 class VerifyOtpView(APIView):
     def post(self, request):
         username = request.data.get('username')
@@ -467,9 +470,29 @@ class VerifyOtpView(APIView):
             return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# --- Test endpoint to verify email sending ---
-from django.http import JsonResponse
+# ------------------ LOGIN TOKEN VIEW ------------------
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
 
+
+# ------------------ SOS ALERT ------------------
+class SOSAlertView(generics.CreateAPIView):
+    serializer_class = SOSAlertSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class SOSAlertListView(generics.ListAPIView):
+    serializer_class = SOSAlertSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return SOSAlert.objects.filter(user=self.request.user).order_by('-created_at')
+
+
+# ------------------ TEST EMAIL (for Render/Resend check) ------------------
 def test_email(request):
     try:
         response = requests.post(
@@ -479,10 +502,10 @@ def test_email(request):
                 "Content-Type": "application/json",
             },
             json={
-                "from": settings.DEFAULT_FROM_EMAIL,
-                "to": ["akshatbhatnagar797@gmail.com"],
+                "from": settings.DEFAULT_FROM_EMAIL,  # "no-reply@healixind.xyz"
+                "to": ["akshatbhatnagar797@gmail.com"],  # test recipient
                 "subject": "Render Email Test",
-                "text": "This is a test email sent from Healix hosted on Render using Resend API.",
+                "text": "This is a test email sent from Healix backend hosted on Render using Resend API.",
             },
         )
         return JsonResponse({'status': 'success', 'response': response.json()})

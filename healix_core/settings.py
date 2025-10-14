@@ -147,7 +147,6 @@
 #     },
 # }
 
-
 from pathlib import Path
 import os
 from datetime import timedelta
@@ -173,7 +172,6 @@ if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 ALLOWED_HOSTS.extend(config('ALLOWED_HOSTS', default='', cast=Csv()))
 
-# CSRF Trusted Origins (important for forms & admin)
 CSRF_TRUSTED_ORIGINS = [
     'https://healixind.xyz',
     'https://www.healixind.xyz',
@@ -185,13 +183,12 @@ if RENDER_EXTERNAL_HOSTNAME:
 # APPLICATIONS
 # ------------------------------------------------------------
 INSTALLED_APPS = [
-    # Django default apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'whitenoise.runserver_nostatic',  # Serve static files
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
 
     # Third-party apps
@@ -272,14 +269,11 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 # ------------------------------------------------------------
-# EMAIL CONFIGURATION — USING RESEND (NO SMTP)
+# EMAIL CONFIGURATION — USING RESEND
 # ------------------------------------------------------------
-# Resend API replaces SMTP completely. It uses HTTPS requests.
-
 RESEND_API_KEY = config('RESEND_API_KEY', default='')
 
 # The sender email must be verified in Resend
-# After verifying healixind.xyz in Resend, set this:
 DEFAULT_FROM_EMAIL = 'Healix <no-reply@healixind.xyz>'
 
 # ------------------------------------------------------------
