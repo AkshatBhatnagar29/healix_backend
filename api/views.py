@@ -469,7 +469,31 @@ class VerifyOtpView(APIView):
         else:
             return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
 
+# @api_view(['POST'])
+# def login_view(request):
+#     username = request.data.get('username')
+#     password = request.data.get('password')
 
+#     # This is the crucial part
+#     user = authenticate(username=username, password=password)
+
+#     username = request.data.get('username')
+#     password = request.data.get('password')
+
+#     print(f"--- Backend Received ---")
+#     print(f"Username: '{username}'")
+#     print(f"Password: '{password}'")
+#     print(f"------------------------")
+
+#     user = authenticate(username=username, password=password)
+
+#     if user is not None:
+#         # User is valid, active, and password is correct
+#         # You would generate and return a token here
+#         return Response({'message': 'Login Successful!'}, status=status.HTTP_200_OK)
+#     else:
+#         # Authentication failed
+#         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST
 # ------------------ LOGIN TOKEN VIEW ------------------
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -555,3 +579,57 @@ def test_email(request):
         return JsonResponse({'status': 'success', 'response': response.json()})
     except Exception as e:
         return JsonResponse({'error': str(e)})
+
+
+class SendSOSMailView(APIView):
+    """
+    API endpoint to send SOS email using Resend service.
+    """
+
+    def post(self, request):
+        location = request.data.get('location')
+        student_name = request.data.get('name')
+        student_username = request.data.get('username')
+
+        # Validate required fields
+        if not all([location, student_name, student_username]):
+            return Response({'error': 'Location, name, and username are required'}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Hardcoded recipients
+        recipients = ['akshatbhatnagar797@gmail.com','sakshamsingh601@gmail.com']
+
+        # Resend API key from environment variables
+        resend_api_key = os.getenv('RESEND_API_KEY')
+        if not resend_api_key:
+            return Response({'error': 'Resend API key not set'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        headers = {
+            "Authorization": f"Bearer {resend_api_key}",
+            "Content-Type": "application/json"
+        }
+
+        # Email body with student details
+        email_body = (
+            f"URGENT SOS ALERT!\n\n"
+            f"Student Name: {student_name}\n"
+            f"Username/ID: {student_username}\n"
+            f"Location: {location}\n\n"
+            f"Please respond immediately."
+        )
+
+        payload = {
+            "from": "admin@healixind.xyz",
+            "to": recipients,
+            "subject": "URGENT: SOS Alert",
+            "text": email_body
+        }
+
+        try:
+            response = requests.post("https://api.resend.com/emails", json=payload, headers=headers)
+            if response.status_code in [200, 202]:
+                return Response({'success': True, 'message': 'Email sent successfully'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'success': False, 'error': response.text}, status=response.status_code)
+        except Exception as e:
+            return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
