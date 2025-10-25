@@ -169,3 +169,4 @@ class LabReport(models.Model):
     status = models.CharField(max_length=20, choices=[('Pending', 'Pending'), ('In Progress', 'In Progress'), ('Ready', 'Ready')])
     report_file_url = models.CharField(max_length=255, blank=True, null=True)
     ordered_at = models.DateTimeField(auto_now_add=True)
+
