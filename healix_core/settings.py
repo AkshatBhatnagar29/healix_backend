@@ -212,7 +212,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://10.0.2.2:8000',
     'http://127.0.0.1:8000',
     'http://0.0.0.0:8000',
-    'http://192.168.29.196:8000'
+    'http://192.168.29.196:8000',
+    # 'http://192.168.29.196:8000',
 ]
 
 
@@ -220,6 +221,7 @@ CSRF_TRUSTED_ORIGINS = [
 # APPLICATIONS
 # ------------------------------------------------------------
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -232,10 +234,25 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-
+    'channels',
     # Local apps
     'api',
 ]
+ASGI_APPLICATION = "healix_core.asgi.application"
+
+
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(os.environ.get("REDIS_HOST", "127.0.0.1"), 6379)],
+            # You can also use a URL if REDIS_URL environment variable is set
+            # "hosts": [os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1")],
+        },
+    },
+}
+
 
 TEMPLATES = [
     {

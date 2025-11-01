@@ -1,38 +1,39 @@
 from django.contrib import admin
-from .models import User, StudentProfile, DoctorProfile, StaffProfile, Hostel, SOSAlert, Appointment
+from django.contrib.auth.admin import UserAdmin
+from .models import User, Hostel, StudentProfile, DoctorProfile, StaffProfile, CaretakerProfile, SOSAlert
 
-# This makes your models visible and editable in the admin panel.
-
-# We can customize how models are displayed. For example, for the User model,
-# we can display the role in the list view.
-class UserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'email', 'role', 'is_staff', 'is_active')
-    list_filter = ('role', 'is_staff', 'is_active')
-    search_fields = ('username', 'first_name', 'last_name', 'email')
-
-class StudentProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'roll_number', 'hostel')
-    search_fields = ('user__username', 'roll_number')
-
-class StaffProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'employee_id', 'phone_number')
-    search_fields = ('user__username', 'employee_id')
+class CustomUserAdmin(UserAdmin):
+    model = User
+    list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'is_staff')
+    # This will automatically pick up the new ROLE_CHOICES from your model
+    fieldsets = UserAdmin.fieldsets + (
+        (None, {'fields': ('role',)}),
+    )
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        (None, {'fields': ('role',)}),
+    )
 
 class HostelAdmin(admin.ModelAdmin):
     list_display = ('name', 'caretaker')
-    search_fields = ('name', 'caretaker__username')
+    raw_id_fields = ('caretaker',)
 
-class SOSAlertAdmin(admin.ModelAdmin):
-    list_display = ('student', 'status', 'alert_time', 'acknowledged_by')
-    list_filter = ('status',)
-    search_fields = ('student__username',)
+class StudentProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'roll_number', 'hostel')
+    raw_id_fields = ('user', 'hostel')
 
+class StaffProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'employee_id', 'department')
+    raw_id_fields = ('user',)
 
-# Register your models here
-admin.site.register(User, UserAdmin)
-admin.site.register(StudentProfile, StudentProfileAdmin)
-admin.site.register(DoctorProfile)
-admin.site.register(StaffProfile, StaffProfileAdmin)
+class CaretakerProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'employee_id', 'phone_number')
+    raw_id_fields = ('user',)
+
+admin.site.register(User, CustomUserAdmin)
 admin.site.register(Hostel, HostelAdmin)
-admin.site.register(SOSAlert, SOSAlertAdmin)
-admin.site.register(Appointment)
+admin.site.register(StudentProfile, StudentProfileAdmin)
+admin.site.register(StaffProfile, StaffProfileAdmin)
+admin.site.register(CaretakerProfile, CaretakerProfileAdmin) # <-- ADD THIS
+admin.site.register(DoctorProfile)
+admin.site.register(SOSAlert)
+

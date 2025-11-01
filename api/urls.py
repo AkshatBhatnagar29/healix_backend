@@ -1,51 +1,32 @@
-# from django.urls import path
-# from .views import SignupView, VerifyOtpView, MyTokenObtainPairView
-# from rest_framework_simplejwt.views import TokenRefreshView
-
-# urlpatterns = [
-#     path('signup/', SignupView.as_view(), name='signup'),
-#     path('verify-otp/', VerifyOtpView.as_view(), name='verify-otp'),
-
-#     path('login/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    
-#     path('login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    
-#     # JWT Authentication Endpoints
-#     path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
-#     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-# ]
-
 from django.urls import path
-from .views import (
-    SignupView, 
-    VerifyOtpView, 
-    MyTokenObtainPairView,
-    SOSCreateView,
-    SOSActiveListView,
-    SOSActionView,
-    StudentProfileView,
-    test_email ,
-    SendSOSMailView,
-    
-)
+from . import views
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     # Auth
-    path('test-email/', test_email),
-
-    path('signup/', SignupView.as_view(), name='signup'),
-    path('verify-otp/', VerifyOtpView.as_view(), name='verify-otp'),
-    path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('signup/', views.SignupView.as_view(), name='signup'),
+    path('verify-otp/', views.VerifyOtpView.as_view(), name='verify-otp'),
+    path('token/', views.MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # Profiles
+    path('student/profile/', views.StudentProfileView.as_view(), name='student-profile'),
+    path('doctor/profile/', views.DoctorProfileView.as_view(), name='doctor-profile'),
+    path('staff/profile/', views.StaffProfileView.as_view(), name='staff-profile'),
+    path('caretaker/profile/', views.CaretakerProfileView.as_view(), name='caretaker-profile'),
+    
+    # Doctor Availability
+    path('doctor/available/', views.set_doctor_available, name='doctor-available'),
+    path('doctor/unavailable/', views.set_doctor_unavailable, name='doctor-unavailable'),
+    
+    # SOS & Alerts
+    path('sos/trigger/', views.SOSCreateView.as_view(), name='sos-trigger'),
+    path('sos/active/', views.SOSActiveListView.as_view(), name='sos-active-list'),
+    path('sos/details/<str:event_id>/', views.get_sos_details, name='sos-details'),
+    path('sos/<int:pk>/<str:action>/', views.SOSActionView.as_view(), name='sos-action'),
 
-    # SOS Feature
-    path('sos/trigger/', SOSCreateView.as_view(), name='sos-trigger'),
-    path('sos/active/', SOSActiveListView.as_view(), name='sos-active-list'),
-    path('sos/<int:pk>/<str:action>/', SOSActionView.as_view(), name='sos-action'),
-
-    # --- 2. ADD THE URL ROUTE FOR THE PROFILE ---
-    path('student/profile/', StudentProfileView.as_view(), name='student-profile'),
-    path('sos/send-email/', SendSOSMailView.as_view(), name='send_sos_email'),
+    # Test & Deprecated
+    # path('test-email/', views.test_email, name='test-email'),
+    # path('sos/send-email/', views.SendSOSMailView.as_view(), name='send_sos_email_deprecated'),
 ]
 

@@ -1,376 +1,19 @@
-# from django.core.mail import send_mail
-# from django.utils import timezone
-# from rest_framework import status, generics
-# from rest_framework.response import Response
-# from rest_framework.views import APIView
-# from rest_framework_simplejwt.views import TokenObtainPairView
-# from .models import User
-# from .serializers import UserSerializer, MyTokenObtainPairSerializer
-# import random
-# from datetime import timedelta
-
-# # --- Helper function to generate and send OTP ---
-# def send_otp_email(user):
-#     otp = random.randint(100000, 999999)
-#     otp_expiry = timezone.now() + timedelta(minutes=10)
-    
-#     user.otp_code = str(otp)
-#     user.otp_expiry = otp_expiry
-#     user.save()
-
-#     subject = 'Your Healix Verification Code'
-#     message = f'Your one-time password (OTP) for Healix account verification is: {otp}\nThis code will expire in 10 minutes.'
-#     from_email = 'your-email@gmail.com' # Configure this in settings.py
-    
-#     try:
-#         send_mail(subject, message, from_email, [user.email])
-#     except Exception as e:
-#         # In a real app, you would log this error
-#         print(f"Error sending email: {e}")
-
-
-# # --- API Endpoint for User Signup ---
-# class SignupView(generics.CreateAPIView):
-#     queryset = User.objects.all()
-#     serializer_class = UserSerializer
-
-#     def perform_create(self, serializer):
-#         # Create the user but mark them as inactive until verified
-#         user = serializer.save(is_active=False)
-#         send_otp_email(user) # Send the verification OTP
-
-
-# # --- API Endpoint for OTP Verification ---
-# class VerifyOtpView(APIView):
-#     def post(self, request):
-#         data = request.data
-#         try:
-#             user = User.objects.get(username=data['username'])
-#         except User.DoesNotExist:
-#             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-#         # Check if OTP is correct and not expired
-#         if user.otp_code == data.get('otp') and timezone.now() < user.otp_expiry:
-#             user.is_active = True
-#             user.is_email_verified = True
-#             user.otp_code = None
-#             user.otp_expiry = None
-#             user.save()
-#             return Response({'message': 'Email verified successfully. You can now log in.'}, status=status.HTTP_200_OK)
-        
-#         return Response({'error': 'Invalid or expired OTP.'}, status=status.HTTP_400_BAD_REQUEST)
-
-
-# # --- Custom Login View using our secure serializer ---
-# class MyTokenObtainPairView(TokenObtainPairView):
-#     serializer_class = MyTokenObtainPairSerializer
-# from django.core.mail import send_mail
-# from django.utils import timezone
-# from rest_framework import status, generics
-# from rest_framework.response import Response
-# from rest_framework.views import APIView
-# from rest_framework_simplejwt.views import TokenObtainPairView
-# from .models import User
-# from .serializers import UserSerializer, MyTokenObtainPairSerializer
-# import random
-# from datetime import timedelta
-# from django.conf import settings
-
-# from django.contrib.auth import authenticate
-# from rest_framework.decorators import api_view
-# from rest_framework.response import Response
-# from rest_framework import status
-
-# @api_view(['POST'])
-# def login_view(request):
-#     username = request.data.get('username')
-#     password = request.data.get('password')
-
-#     # This is the crucial part
-#     user = authenticate(username=username, password=password)
-
-#     username = request.data.get('username')
-#     password = request.data.get('password')
-
-#     print(f"--- Backend Received ---")
-#     print(f"Username: '{username}'")
-#     print(f"Password: '{password}'")
-#     print(f"------------------------")
-
-#     user = authenticate(username=username, password=password)
-
-#     if user is not None:
-#         # User is valid, active, and password is correct
-#         # You would generate and return a token here
-#         return Response({'message': 'Login Successful!'}, status=status.HTTP_200_OK)
-#     else:
-#         # Authentication failed
-#         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
-
-
-# --- Helper function to generate and send OTP ---
-# def send_otp_email(user):
-#     # Generate 6-digit OTP
-#     otp = random.randint(100000, 999999)
-#     otp_expiry = timezone.now() + timedelta(minutes=10)
-
-#     # Save OTP and expiry to user
-#     user.otp_code = str(otp)
-#     user.otp_expiry = otp_expiry
-#     user.save()
-
-#     # Email content
-#     subject = 'Your Healix Verification Code'
-#     message = f'Your OTP for Healix account verification is: {otp}\nThis code expires in 10 minutes.'
-#     from_email = settings.DEFAULT_FROM_EMAIL  # Use settings instead of hardcoding
-#     recipient_list = [user.email]
-
-#     try:
-#         send_mail(subject, message, from_email, recipient_list)
-#         print(f"OTP {otp} sent to {user.email}")
-#     except Exception as e:
-#         print(f"Error sending OTP to {user.email}: {e}")
-
-# # --- Signup API ---
-# class SignupView(generics.CreateAPIView):
-#     queryset = User.objects.all()
-#     serializer_class = UserSerializer
-
-#     def perform_create(self, serializer):
-#         # Create inactive user
-#         user = serializer.save(is_active=False)
-#         send_otp_email(user)  # Send OTP after user is saved
-
-# # --- OTP Verification API ---
-# class VerifyOtpView(APIView):
-#     def post(self, request):
-#         username = request.data.get('username')
-#         otp = request.data.get('otp')
-
-#         if not username or not otp:
-#             return Response({'error': 'Username and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         try:
-#             user = User.objects.get(username=username)
-#         except User.DoesNotExist:
-#             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-#         if user.otp_code == otp and timezone.now() < user.otp_expiry:
-#             user.is_active = True
-#             user.is_email_verified = True
-#             user.otp_code = None
-#             user.otp_expiry = None
-#             user.save()
-#             return Response({'message': 'Email verified successfully!'}, status=status.HTTP_200_OK)
-#         else:
-#             return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
-
-# # --- Custom Login API ---
-# class MyTokenObtainPairView(TokenObtainPairView):
-#     serializer_class = MyTokenObtainPairSerializer
-
-
-
-
-
-
-
-
-
-# from django.utils import timezone
-# from rest_framework import status, generics, permissions
-# from rest_framework.response import Response
-# from rest_framework.views import APIView
-# from rest_framework_simplejwt.views import TokenObtainPairView
-# from .models import User, SOSAlert
-# from .serializers import UserSerializer, MyTokenObtainPairSerializer, SOSAlertSerializer
-# import random
-# from datetime import timedelta
-# from django.conf import settings
-# from django.core.mail import send_mail
-# from django.utils import timezone
-# from rest_framework import status, generics, permissions
-# from rest_framework.response import Response
-# from rest_framework.views import APIView
-# from rest_framework_simplejwt.views import TokenObtainPairView
-# from .models import User, SOSAlert, StudentProfile
-# from .serializers import UserSerializer, MyTokenObtainPairSerializer, SOSAlertSerializer, StudentProfileSerializer
-
-# # --- NEW: View for Student to manage their own profile ---
-# class StudentProfileView(generics.RetrieveUpdateAPIView):
-#     serializer_class = StudentProfileSerializer
-#     permission_classes = [permissions.IsAuthenticated]
-
-#     def get_object(self):
-#         # This ensures a user can only ever access their own profile
-#         return self.request.user.student_profile
-# # --- Authentication and User Management Views (largely unchanged) ---
-
-# def send_otp_email(user):
-#     otp = random.randint(100000, 999999)
-#     otp_expiry = timezone.now() + timedelta(minutes=10)
-
-#     # Save OTP and expiry to user
-#     user.otp_code = str(otp)
-#     user.otp_expiry = otp_expiry
-#     user.save()
-
-#     # Email content
-#     subject = 'Your Healix Verification Code'
-#     message = f'Your OTP for Healix account verification is: {otp}\nThis code expires in 10 minutes.'
-#     from_email = settings.DEFAULT_FROM_EMAIL  # Use settings instead of hardcoding
-#     recipient_list = [user.email]
-
-#     try:
-#         send_mail(subject, message, from_email, recipient_list)
-#         print(f"OTP {otp} sent to {user.email}")
-    
-#     except Exception as e:
-#         print(f"Error sending OTP to {user.email}: {e}")
-#     pass 
-
-# class SignupView(generics.CreateAPIView):
-#     queryset = User.objects.all()
-#     serializer_class = UserSerializer
-
-#     def perform_create(self, serializer):
-#         # Create inactive user
-#         user = serializer.save(is_active=False)
-#         send_otp_email(user)
-#     pass
-
-# class VerifyOtpView(APIView):
-#     def post(self, request):
-#         username = request.data.get('username')
-#         otp = request.data.get('otp')
-
-#         if not username or not otp:
-#             return Response({'error': 'Username and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         try:
-#             user = User.objects.get(username=username)
-#         except User.DoesNotExist:
-#             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-#         if user.otp_code == otp and timezone.now() < user.otp_expiry:
-#             user.is_active = True
-#             user.is_email_verified = True
-#             user.otp_code = None
-#             user.otp_expiry = None
-#             user.save()
-#             return Response({'message': 'Email verified successfully!'}, status=status.HTTP_200_OK)
-#         else:
-#             return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
-
-#     pass
-
-# class MyTokenObtainPairView(TokenObtainPairView):
-#     serializer_class = MyTokenObtainPairSerializer
-
-
-# # --- SOS Feature API Views (NEW) ---
-
-# class SOSCreateView(generics.CreateAPIView):
-#     """
-#     Allows a student to trigger an SOS alert.
-#     POST /api/sos/trigger/
-#     Body: {"location_info": "Hostel A, Room 205"}
-#     """
-#     serializer_class = SOSAlertSerializer
-#     permission_classes = [permissions.IsAuthenticated]
-
-#     def perform_create(self, serializer):
-#         # Check if the user already has an active alert
-#         if SOSAlert.objects.filter(student=self.request.user, status__in=['Active', 'Acknowledged']).exists():
-#             raise serializer.ValidationError("You already have an active emergency alert.")
-        
-#         # Associate the alert with the currently logged-in student
-#         serializer.save(student=self.request.user)
-
-# class SOSActiveListView(generics.ListAPIView):
-#     """
-#     Lists active and acknowledged SOS alerts.
-#     - Doctors see all alerts.
-#     - Staff/Caretakers see alerts only from students in their assigned hostel.
-#     - Students see only their own alert.
-#     GET /api/sos/active/
-#     """
-#     serializer_class = SOSAlertSerializer
-#     permission_classes = [permissions.IsAuthenticated]
-
-#     def get_queryset(self):
-#         user = self.request.user
-#         queryset = SOSAlert.objects.filter(status__in=['Active', 'Acknowledged']).order_by('-alert_time')
-
-#         if user.role == 'staff':
-#             return queryset.filter(student__student_profile__hostel__caretaker=user)
-#         elif user.role == 'student':
-#             return queryset.filter(student=user)
-        
-#         # Doctors see all alerts
-#         return queryset
-
-# class SOSActionView(APIView):
-#     """
-#     A single view to handle Acknowledge and Resolve actions on an SOS alert.
-#     POST /api/sos/{id}/acknowledge/
-#     POST /api/sos/{id}/resolve/
-#     """
-#     permission_classes = [permissions.IsAuthenticated]
-
-#     def post(self, request, pk, action):
-#         try:
-#             alert = SOSAlert.objects.get(pk=pk)
-#         except SOSAlert.DoesNotExist:
-#             return Response({'error': 'Alert not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-#         user = request.user
-
-#         if action == 'acknowledge':
-#             if user.role not in ['doctor', 'staff']:
-#                 return Response({'error': 'You are not authorized to acknowledge alerts.'}, status=status.HTTP_403_FORBIDDEN)
-#             if alert.status != 'Active':
-#                  return Response({'error': 'This alert has already been acknowledged or resolved.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-#             alert.status = 'Acknowledged'
-#             alert.acknowledged_by = user
-#             alert.save()
-#             return Response(SOSAlertSerializer(alert).data, status=status.HTTP_200_OK)
-
-#         elif action == 'resolve':
-#             if alert.student != user:
-#                 return Response({'error': 'You can only resolve your own alerts.'}, status=status.HTTP_403_FORBIDDEN)
-
-#             alert.status = 'Resolved'
-#             alert.resolved_at = timezone.now()
-#             alert.save()
-#             return Response(SOSAlertSerializer(alert).data, status=status.HTTP_200_OK)
-
-#         return Response({'error': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
-    
-# # class MyTokenObtainPairView(TokenObtainPairView):
-# #     serializer_class = MyTokenObtainPairSerializer
-# # api/views.py
-# from django.core.mail import send_mail
-# from django.http import JsonResponse
-
-# def test_email(request):
-#     try:
-#         send_mail(
-#             'Render Email Test',
-#             'This is a test email from Healix hosted on Render.',
-#             'akshatbhatnagar797@gmail.com',
-#             ['akshatbhatnagar797@gmail.com'],
-#             fail_silently=False,
-#         )
-#         return JsonResponse({'status': 'success'})
-#     except Exception as e:
-#         return JsonResponse({'error': str(e)})
-
-
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+from .models import (
+    DoctorProfile, StaffProfile, StudentProfile, CaretakerProfile, 
+    Hostel, User, SOSAlert
+)
+from .serializers import (
+    DoctorProfileSerializer, StaffProfileSerializer, StudentProfileSerializer,
+    CaretakerProfileSerializer, UserSerializer, MyTokenObtainPairSerializer, 
+    SOSAlertSerializer
+)
 import os
 import random
 import requests
+import json
+import django_redis
 from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
@@ -379,77 +22,92 @@ from rest_framework import status, generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.exceptions import ValidationError # <-- 1. ADD THIS IMPORT
+from rest_framework.exceptions import ValidationError
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
-from .models import User, SOSAlert, StudentProfile
-from .serializers import (
-    UserSerializer,
-    MyTokenObtainPairSerializer,
-    SOSAlertSerializer,
-    StudentProfileSerializer
-)
-# from rest_framework.exceptions import ValidationError
+# --- Redis Helper ---
+def get_redis_connection():
+    return django_redis.get_redis_connection("default")
 
-# inside your perform_create
-# raise ValidationError("You already have an active emergency alert.")
-# ------------------ STUDENT PROFILE ------------------
+# --- Profile Views ---
+class DoctorProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = DoctorProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def get_object(self):
+        if self.request.user.role != 'doctor':
+            raise permissions.PermissionDenied("You are not authorized.")
+        profile, created = DoctorProfile.objects.get_or_create(user=self.request.user)
+        return profile
+
 class StudentProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = StudentProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
-
     def get_object(self):
-        # Ensure a user can only access their own profile
         return self.request.user.student_profile
 
+class StaffProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = StaffProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def get_object(self):
+        if self.request.user.role != 'staff':
+            raise permissions.PermissionDenied("You are not authorized.")
+        profile, created = StaffProfile.objects.get_or_create(user=self.request.user)
+        return profile
 
-# ------------------ OTP EMAIL SENDER (Resend API) ------------------
+class CaretakerProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = CaretakerProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def get_object(self):
+        if self.request.user.role != 'caretaker':
+            raise permissions.PermissionDenied("You are not authorized.")
+        profile, created = CaretakerProfile.objects.get_or_create(user=self.request.user)
+        return profile
+
+# --- Auth Views ---
 def send_otp_email(user):
     otp = random.randint(100000, 999999)
     otp_expiry = timezone.now() + timedelta(minutes=10)
-
-    # Save OTP and expiry to user
     user.otp_code = str(otp)
     user.otp_expiry = otp_expiry
     user.save()
 
     subject = "Your Healix Verification Code"
     message = f"Your OTP for Healix account verification is: {otp}\nThis code expires in 10 minutes."
+    
+    # NOTE: Add RESEND_API_KEY and DEFAULT_FROM_EMAIL to your settings
+    resend_api_key = os.getenv('RESEND_API_KEY', settings.RESEND_API_KEY)
+    from_email = os.getenv('DEFAULT_FROM_EMAIL', settings.DEFAULT_FROM_EMAIL)
 
     try:
         response = requests.post(
             "https://api.resend.com/emails",
             headers={
-                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                "Authorization": f"Bearer {resend_api_key}",
                 "Content-Type": "application/json",
             },
             json={
-                "from": settings.DEFAULT_FROM_EMAIL,
+                "from": from_email,
                 "to": [user.email],
                 "subject": subject,
                 "text": message,
             },
         )
-
         if response.status_code in [200, 202]:
             print(f"✅ OTP {otp} sent successfully to {user.email}")
         else:
             print(f"❌ Failed to send OTP. Response: {response.text}")
-
     except Exception as e:
         print(f"⚠️ Error sending OTP to {user.email}: {e}")
 
-
-# ------------------ SIGNUP VIEW ------------------
 class SignupView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
     def perform_create(self, serializer):
-        user = serializer.save(is_active=False)
-        send_otp_email(user)
+        user = serializer.save(is_active=False) 
+        send_otp_email(user) # Send OTP on signup
 
-
-# ------------------ VERIFY OTP ------------------
 class VerifyOtpView(APIView):
     def post(self, request):
         username = request.data.get('username')
@@ -457,7 +115,6 @@ class VerifyOtpView(APIView):
 
         if not username or not otp:
             return Response({'error': 'Username and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
             user = User.objects.get(username=username)
         except User.DoesNotExist:
@@ -476,17 +133,150 @@ class VerifyOtpView(APIView):
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
+# --- Doctor Availability Views ---
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_doctor_available(request):
+    if request.user.role != 'doctor':
+         return Response({"error": "Only doctors can set availability"}, status=status.HTTP_403_FORBIDDEN)
+    doctor_id = request.user.id
+    redis_conn = get_redis_connection()
+    redis_conn.sadd("available_doctors", doctor_id)
+    return Response({"status": "available"}, status=status.HTTP_200_OK)
 
-# ------------------ SOS ALERT VIEWS ------------------
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_doctor_unavailable(request):
+    if request.user.role != 'doctor':
+         return Response({"error": "Only doctors can set availability"}, status=status.HTTP_403_FORBIDDEN)
+    doctor_id = request.user.id
+    redis_conn = get_redis_connection()
+    redis_conn.srem("available_doctors", doctor_id)
+    return Response({"status": "unavailable"}, status=status.HTTP_200_OK)
+
+# --- SOS Alert Views ---
 class SOSCreateView(generics.CreateAPIView):
     serializer_class = SOSAlertSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         if SOSAlert.objects.filter(student=self.request.user, status__in=['Active', 'Acknowledged']).exists():
-            raise serializer.ValidationError("You already have an active emergency alert.")
-        serializer.save(student=self.request.user)
+            raise ValidationError("You already have an active emergency alert.")
+        
+        alert = serializer.save(student=self.request.user)
 
+        try:
+            redis_conn = get_redis_connection()
+            profile_data = self.request.data.get('profile')
+            if not profile_data:
+                print("⚠️ WARNING: SOS request missing 'profile' data. Falling back to DB query.")
+                profile_data = StudentProfileSerializer(self.request.user.student_profile).data
+
+            sos_data = {
+                "sql_alert_id": alert.id,
+                "student_id": self.request.user.id,
+                "student_username": self.request.user.username,
+                "profile": profile_data,
+                "location_info": alert.location_info,
+                "alert_time": alert.alert_time.isoformat(),
+            }
+            sos_event_id = f"sos:{alert.id}"
+            redis_conn.set(sos_event_id, json.dumps(sos_data), ex=3600)
+
+            channel_layer = get_channel_layer()
+            
+            # 1. Notify ALL doctors
+            doctor_message = { "type": "sos_notification", "message": { "sos_event_id": sos_event_id } }
+            async_to_sync(channel_layer.group_send)("doctors_sos_group", doctor_message)
+
+            # 2. Notify the SPECIFIC caretaker
+            try:
+                student_profile = self.request.user.student_profile
+                if student_profile.hostel and student_profile.hostel.caretaker:
+                    caretaker_user = student_profile.hostel.caretaker
+                    
+                    if caretaker_user.role == 'caretaker': # Check role
+                        caretaker_group_name = f"caretaker_{caretaker_user.id}"
+                        student_id_to_call = self.request.user.username
+                        
+                        print(f"Sending SOS to Caretaker: {caretaker_user.username} in group {caretaker_group_name}")
+                        caretaker_message = {
+                            "type": "sos_notification",
+                            "message": {
+                                "sos_event_id": sos_event_id,
+                                "student_id_to_call": student_id_to_call,
+                                "student_name": self.request.user.get_full_name(),
+                                "location_info": alert.location_info
+                            }
+                        }
+                        async_to_sync(channel_layer.group_send)(caretaker_group_name, caretaker_message)
+                    else:
+                        print(f"User {caretaker_user.username} is assigned to hostel but is not a 'caretaker'.")
+                else:
+                    print(f"Student {self.request.user.username} has no hostel or caretaker assigned.")
+            except Exception as e:
+                print(f"⚠️ Error sending to caretaker: {e}")
+        except Exception as e:
+            print(f"⚠️ Redis/Channels Error in SOSCreateView: {e}")
+        
+        self.send_sos_email_alert(alert, self.request.user)
+
+    def send_sos_email_alert(self, alert, student):
+        recipients = ['akshatbhatnagar797@gmail.com', 'sakshamsingh601@gmail.com'] # Example
+        resend_api_key = os.getenv('RESEND_API_KEY', settings.RESEND_API_KEY)
+        from_email = os.getenv('DEFAULT_FROM_EMAIL', settings.DEFAULT_FROM_EMAIL)
+        
+        if not resend_api_key or not from_email:
+            print("⚠️ Resend API key or From Email not set, skipping email.")
+            return
+
+        headers = { "Authorization": f"Bearer {resend_api_key}", "Content-Type": "application/json" }
+        email_body = (
+            f"URGENT SOS ALERT!\n\n"
+            f"Student Name: {student.first_name} {student.last_name}\n"
+            f"Username/ID: {student.username}\n"
+            f"Location: {alert.location_info}\n\n"
+            f"Please respond immediately."
+        )
+        payload = {
+            "from": from_email,
+            "to": recipients,
+            "subject": f"URGENT: SOS Alert from {student.username}",
+            "text": email_body
+        }
+        try:
+            requests.post("https://api.resend.com/emails", json=payload, headers=headers, timeout=2.5)
+            print(f"✅ SOS Email for alert {alert.id} sent.")
+        except Exception as e:
+            print(f"⚠️ SOS Email failed to send: {e}")
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_sos_details(request, event_id):
+    if request.user.role not in ['doctor', 'staff', 'caretaker']:
+         return Response({"error": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        redis_conn = get_redis_connection()
+        cached_data = redis_conn.get(event_id)
+        if not cached_data:
+            sql_id = event_id.split(':')[-1]
+            alert = SOSAlert.objects.get(id=sql_id)
+            profile_data = StudentProfileSerializer(alert.student.student_profile).data
+            sos_data = {
+                "sql_alert_id": alert.id,
+                "student_id": alert.student.id,
+                "student_username": alert.student.username,
+                "profile": profile_data,
+                "location_info": alert.location_info,
+                "alert_time": alert.alert_time.isoformat(),
+            }
+            return Response(sos_data, status=status.HTTP_200_OK)
+        sos_data = json.loads(cached_data)
+        return Response(sos_data, status=status.HTTP_200_OK)
+    except SOSAlert.DoesNotExist:
+        return Response({"error": "SOS event not found."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class SOSActiveListView(generics.ListAPIView):
     serializer_class = SOSAlertSerializer
@@ -496,13 +286,17 @@ class SOSActiveListView(generics.ListAPIView):
         user = self.request.user
         queryset = SOSAlert.objects.filter(status__in=['Active', 'Acknowledged']).order_by('-alert_time')
 
-        if user.role == 'staff':
-            return queryset.filter(student__student_profile__hostel__caretaker=user)
+        if user.role == 'caretaker':
+            user_hostels = user.hostel_set.all()
+            if not user_hostels.exists():
+                return SOSAlert.objects.none()
+            return queryset.filter(student__student_profile__hostel__in=user_hostels)
+        elif user.role == 'staff':
+            return SOSAlert.objects.none() # Other staff see no alerts
         elif user.role == 'student':
             return queryset.filter(student=user)
-        # Doctors see all alerts
+        # Doctors see all
         return queryset
-
 
 class SOSActionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -516,20 +310,18 @@ class SOSActionView(APIView):
         user = request.user
 
         if action == 'acknowledge':
-            if user.role not in ['doctor', 'staff']:
-                return Response({'error': 'You are not authorized to acknowledge alerts.'}, status=status.HTTP_403_FORBIDDEN)
+            if user.role not in ['doctor', 'staff', 'caretaker']:
+                return Response({'error': 'Not authorized.'}, status=status.HTTP_403_FORBIDDEN)
             if alert.status != 'Active':
-                 return Response({'error': 'This alert has already been acknowledged or resolved.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+                 return Response({'error': 'Alert already handled.'}, status=status.HTTP_400_BAD_REQUEST)
             alert.status = 'Acknowledged'
             alert.acknowledged_by = user
             alert.save()
             return Response(SOSAlertSerializer(alert).data, status=status.HTTP_200_OK)
 
         elif action == 'resolve':
-            if alert.student != user:
-                return Response({'error': 'You can only resolve your own alerts.'}, status=status.HTTP_403_FORBIDDEN)
-
+            if user.role not in ['doctor', 'staff', 'caretaker'] and alert.student != user:
+                return Response({'error': 'Not authorized.'}, status=status.HTTP_403_FORBIDDEN)
             alert.status = 'Resolved'
             alert.resolved_at = timezone.now()
             alert.save()
@@ -537,77 +329,3 @@ class SOSActionView(APIView):
 
         return Response({'error': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
 
-
-# ------------------ TEST EMAIL (Resend API) ------------------
-def test_email(request):
-    try:
-        response = requests.post(
-            "https://api.resend.com/emails",
-            headers={
-                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "from": settings.DEFAULT_FROM_EMAIL,
-                "to": ["akshatbhatnagar797@gmail.com"],
-                "subject": "Render Email Test",
-                "text": "This is a test email sent from Healix backend hosted on Render using Resend API.",
-            },
-        )
-        return JsonResponse({'status': 'success', 'response': response.json()})
-    except Exception as e:
-        return JsonResponse({'error': str(e)})
-
-
-class SendSOSMailView(APIView):
-    """
-    API endpoint to send SOS email using Resend service.
-    """
-
-    def post(self, request):
-        # location = request.data.get('location_info')
-        # student_name = request.data.get('name')
-        student_username = request.data.get('username')
-
-        # Validate required fields
-        # if not all([location, student_name, student_username]):
-        #     return Response({'error': 'Location, name, and username are required'}, 
-        #                     status=status.HTTP_400_BAD_REQUEST)
-
-        # Hardcoded recipients
-        recipients = ['akshatbhatnagar797@gmail.com','sakshamsingh601@gmail.com']
-
-        # Resend API key from environment variables
-        resend_api_key = os.getenv('RESEND_API_KEY')
-        if not resend_api_key:
-            return Response({'error': 'Resend API key not set'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        headers = {
-            "Authorization": f"Bearer {resend_api_key}",
-            "Content-Type": "application/json"
-        }
-
-        # Email body with student details
-        email_body = (
-            f"URGENT SOS ALERT!\n\n"
-            # f"Student Name: {student_name}\n"
-            # f"Username/ID: {student_username}\n"
-            # f"Location: {location}\n\n"
-            f"Room No. 256 .Please respond immediately."
-        )
-
-        payload = {
-            "from": "admin@healixind.xyz",
-            "to": recipients,
-            "subject": "URGENT: SOS Alert",
-            "text": email_body
-        }
-
-        try:
-            response = requests.post("https://api.resend.com/emails", json=payload, headers=headers)
-            if response.status_code in [200, 202]:
-                return Response({'success': True, 'message': 'Email sent successfully'}, status=status.HTTP_200_OK)
-            else:
-                return Response({'success': False, 'error': response.text}, status=response.status_code)
-        except Exception as e:
-            return Response({'success': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
