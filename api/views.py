@@ -9,6 +9,8 @@ from .serializers import (
     CaretakerProfileSerializer, UserSerializer, MyTokenObtainPairSerializer, 
     SOSAlertSerializer
 )
+from channels.layers import get_channel_layer
+from django.views.decorators.csrf import csrf_exempt
 import os
 import random
 import requests
@@ -331,6 +333,7 @@ class SOSActionView(APIView):
 
         return Response({'error': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
 
+@csrf_exempt
 @api_view(['GET'])
 @permission_classes([AllowAny]) # Make it public
 def create_admin_once(request):
