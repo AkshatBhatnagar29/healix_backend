@@ -24,7 +24,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 
 # --- Redis Helper ---
 def get_redis_connection():
@@ -103,12 +103,13 @@ def send_otp_email(user):
 class SignupView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-
+    permission_classes = [AllowAny]
     def perform_create(self, serializer):
         user = serializer.save(is_active=False) 
         send_otp_email(user) # Send OTP on signup
 
 class VerifyOtpView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         username = request.data.get('username')
         otp = request.data.get('otp')
@@ -131,6 +132,7 @@ class VerifyOtpView(APIView):
             return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
 
 class MyTokenObtainPairView(TokenObtainPairView):
+    permission_classes = [AllowAny]
     serializer_class = MyTokenObtainPairSerializer
 
 # --- Doctor Availability Views ---
