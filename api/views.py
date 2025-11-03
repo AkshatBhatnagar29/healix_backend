@@ -362,8 +362,9 @@ from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 import os, requests
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 @csrf_exempt
-@require_POST
 def get_turn_credentials(request):
     # Validate Bearer token from header
     auth = request.META.get('HTTP_AUTHORIZATION', '')
