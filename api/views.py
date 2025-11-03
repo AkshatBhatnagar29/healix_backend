@@ -333,28 +333,28 @@ class SOSActionView(APIView):
 
         return Response({'error': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
 
-# @csrf_exempt
-# @api_view(['GET'])
-# @permission_classes([AllowAny]) # Make it public
-# def create_admin_once(request):
-#     """
-#     A temporary, one-time-use view to create a superuser on Render.
-#     VISIT THIS URL ONCE, THEN DELETE THIS VIEW AND ITS URL.
-#     """
-#     try:
-#         if not User.objects.filter(username='admin').exists():
-#             User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword123')
-#             return Response(
-#                 {"success": "Superuser 'admin' created with password 'adminpassword123'. NOW DELETE THIS URL AND VIEW."},
-#                 status=status.HTTP_201_CREATED
-#             )
-#         else:
-#             return Response(
-#                 {"message": "Admin user 'admin' already exists."},
-#                 status=status.HTTP_200_OK
-#             )
-#     except Exception as e:
-#         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([AllowAny]) # Make it public
+def create_admin_once(request):
+    """
+    A temporary, one-time-use view to create a superuser on Render.
+    VISIT THIS URL ONCE, THEN DELETE THIS VIEW AND ITS URL.
+    """
+    try:
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword123')
+            return Response(
+                {"success": "Superuser 'admin' created with password 'adminpassword123'. NOW DELETE THIS URL AND VIEW."},
+                status=status.HTTP_201_CREATED
+            )
+        else:
+            return Response(
+                {"message": "Admin user 'admin' already exists."},
+                status=status.HTTP_200_OK
+            )
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 import requests
 import os
