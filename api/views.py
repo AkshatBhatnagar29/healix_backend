@@ -368,19 +368,42 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.conf import settings
 
-@api_view(['GET'])
+# In api/views.py
+
+import requests
+from django.conf import settings
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+# --- This is the corrected view ---
+
+@api_view(['POST']) # 1. This must be a POST request
 @permission_classes([IsAuthenticated])
 def get_turn_credentials(request):
     url = f"https://api.cloudflare.com/client/v4/accounts/{settings.CLOUDFLARE_ACCOUNT_ID}/webrtc/credentials"
     
+    # 2. Use the "Authorization: Bearer" header, not X-Auth-Key
     headers = {
-        "X-Auth-Email": settings.CLOUDFLARE_EMAIL,
-        "X-Auth-Key": settings.CLOUDFLARE_API_TOKEN,
+        "Authorization": f"Bearer {settings.CLOUDFLARE_API_TOKEN}",
         "Content-Type": "application/json",
     }
 
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        return Response(response.json())
-    else:
-        return Response({"error": response.text}, status=response.status_code)
+    # 3. A POST request is required to send the TTL (Time To Live)
+    body = {"ttl": 14400} # 4-hour time to live for the token
+
+    try:
+        response = requests.post(url, headers=headers, json=body)
+        response.raise_for_status() # Raise an error for bad responses (4xx/5xx)
+        
+        data = response.json()
+        
+        # 4. Check for success and return the 'result' (which contains iceServers)
+        if data.get('success'):
+            return Response(data['result'])
+        else:
+            return Response({"error": "Cloudflare API error", "details": data.get('errors')}, status=500)
+
+    except requests.exceptions.RequestException as e:
+        # Handle network errors or bad responses
+        return Response({"error": str(e), "response_text": e.response.text if e.response else "No response"}, status=500)
