@@ -375,7 +375,7 @@ def get_turn_credentials(request):
     
     headers = {
         "X-Auth-Email": settings.CLOUDFLARE_EMAIL,
-        "X-Auth-Key": settings.CLOUDFLARE_API_KEY,
+        "X-Auth-Key": settings.CLOUDFLARE_API_TOKEN,
         "Content-Type": "application/json",
     }
 
