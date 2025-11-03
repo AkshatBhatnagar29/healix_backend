@@ -59,7 +59,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentProfile
         fields = [
-            'id', 'name', 'username', 'email',
+             'name', 'username', 'email',
             'hostel_name', 'hostel_display', 'caretaker_id',
             # include any other fields your StudentProfile has:
             'roll_no', 'year', 'department', 'room_number', 'phone'
