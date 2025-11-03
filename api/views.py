@@ -364,41 +364,46 @@ from django.contrib.auth.decorators import login_required
 
 # ... (all your other imports)
 
-
-# This view is for your new TURN server endpoint
 @login_required
 @csrf_exempt
-@require_POST  # <-- 2. THIS IS THE FIX
+@require_POST
 def get_turn_credentials(request):
     """
-    Calls the Cloudflare API to get temporary TURN credentials.
+    Fetch temporary TURN/STUN credentials from Cloudflare.
     """
     CLOUDFLARE_ACCOUNT_ID = os.environ.get('CLOUDFLARE_ACCOUNT_ID')
     CLOUDFLARE_API_TOKEN = os.environ.get('CLOUDFLARE_API_TOKEN')
 
     if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
-        return JsonResponse({"error": "Cloudflare credentials not configured on server."}, status=500)
+        return JsonResponse(
+            {"error": "Cloudflare credentials not configured on server."}, 
+            status=500
+        )
 
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/webrtc/credentials"
     headers = {
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
         "Content-Type": "application/json",
     }
-    body = {"ttl": 14400} # 4 hours
+    body = {"ttl": 14400}  # credentials valid for 4 hours
 
     try:
         response = requests.post(url, headers=headers, json=body)
-        response.raise_for_status() 
-
+        response.raise_for_status()
         data = response.json()
 
-        if data.get('success'):
-            return JsonResponse(data['result'])
-        else:
-            return JsonResponse({"error": "Failed to get credentials from Cloudflare"}, status=500)
-            
+        if not data.get('success'):
+            return JsonResponse(
+                {"error": "Failed to get credentials from Cloudflare"},
+                status=500
+            )
+
+        # ✅ Ensure the returned structure is compatible with Flutter's createPeerConnection()
+        result = data['result']
+        return JsonResponse({
+            "iceServers": result.get("iceServers", []),
+            "iceTransportPolicy": result.get("iceTransportPolicy", "all"),
+        })
+
     except requests.exceptions.RequestException as e:
         return JsonResponse({"error": str(e)}, status=500)
-
-
-# ... (all your other views and consumers)
