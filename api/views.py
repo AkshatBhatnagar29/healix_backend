@@ -379,7 +379,7 @@ def get_turn_credentials(request):
         "Content-Type": "application/json",
     }
 
-    response = requests.post(url, headers=headers)
+    response = requests.get(url, headers=headers)
     if response.status_code == 200:
         return Response(response.json())
     else:
