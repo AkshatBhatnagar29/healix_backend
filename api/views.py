@@ -377,20 +377,29 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 # --- This is the corrected view ---
+# In api/views.py
 
-@api_view(['POST']) # 1. This must be a POST request
+import requests
+from django.conf import settings
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+# --- THIS IS THE CORRECT VERSION FOR OUR SETUP ---
+
+@api_view(['POST']) # It MUST be a POST request
 @permission_classes([IsAuthenticated])
 def get_turn_credentials(request):
     url = f"https://api.cloudflare.com/client/v4/accounts/{settings.CLOUDFLARE_ACCOUNT_ID}/webrtc/credentials"
     
-    # 2. Use the "Authorization: Bearer" header, not X-Auth-Key
+    # Use the "Authorization: Bearer" header for your main API Token
     headers = {
         "Authorization": f"Bearer {settings.CLOUDFLARE_API_TOKEN}",
         "Content-Type": "application/json",
     }
 
-    # 3. A POST request is required to send the TTL (Time To Live)
-    body = {"ttl": 14400} # 4-hour time to live for the token
+    # A POST request is required to create new credentials
+    body = {"ttl": 14400} # 4-hour time to live
 
     try:
         response = requests.post(url, headers=headers, json=body)
@@ -398,12 +407,12 @@ def get_turn_credentials(request):
         
         data = response.json()
         
-        # 4. Check for success and return the 'result' (which contains iceServers)
         if data.get('success'):
+            # Return ONLY the 'result' part
             return Response(data['result'])
         else:
             return Response({"error": "Cloudflare API error", "details": data.get('errors')}, status=500)
 
     except requests.exceptions.RequestException as e:
-        # Handle network errors or bad responses
-        return Response({"error": str(e), "response_text": e.response.text if e.response else "No response"}, status=500)
+        response_text = e.response.text if e.response else "No response"
+        return Response({"error": str(e), "response_text": response_text}, status=500)
