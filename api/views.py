@@ -355,55 +355,50 @@ def create_admin_once(request):
             )
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-import requests
-import os
 from django.http import JsonResponse
-from django.views.decorators.http import require_POST  # <-- 1. THIS IS THE FIX
-from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+import os, requests
 
-# ... (all your other imports)
-
-@login_required
 @csrf_exempt
 @require_POST
 def get_turn_credentials(request):
-    """
-    Fetch temporary TURN/STUN credentials from Cloudflare.
-    """
+    # Validate Bearer token from header
+    auth = request.META.get('HTTP_AUTHORIZATION', '')
+    if not auth.startswith('Bearer '):
+        return JsonResponse({'error': 'Missing bearer token'}, status=401)
+    token_key = auth.split(' ', 1)[1]
+    try:
+        token = AccessToken(token_key)
+        user_id = token.get('user_id')  # optional: can lookup user if needed
+    except (TokenError, InvalidToken) as e:
+        return JsonResponse({'error': 'Invalid/expired token'}, status=401)
+
     CLOUDFLARE_ACCOUNT_ID = os.environ.get('CLOUDFLARE_ACCOUNT_ID')
     CLOUDFLARE_API_TOKEN = os.environ.get('CLOUDFLARE_API_TOKEN')
-
     if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
-        return JsonResponse(
-            {"error": "Cloudflare credentials not configured on server."}, 
-            status=500
-        )
+        return JsonResponse({"error": "Cloudflare credentials not configured on server."}, status=500)
 
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/webrtc/credentials"
     headers = {
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
         "Content-Type": "application/json",
     }
-    body = {"ttl": 14400}  # credentials valid for 4 hours
+    body = {"ttl": 14400}  # 4 hours
 
     try:
-        response = requests.post(url, headers=headers, json=body)
-        response.raise_for_status()
-        data = response.json()
-
+        resp = requests.post(url, headers=headers, json=body, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
         if not data.get('success'):
-            return JsonResponse(
-                {"error": "Failed to get credentials from Cloudflare"},
-                status=500
-            )
-
-        # ✅ Ensure the returned structure is compatible with Flutter's createPeerConnection()
+            return JsonResponse({"error": "Failed to get credentials from Cloudflare"}, status=500)
         result = data['result']
+        # return the exact shape Flutter expects
         return JsonResponse({
             "iceServers": result.get("iceServers", []),
             "iceTransportPolicy": result.get("iceTransportPolicy", "all"),
         })
-
     except requests.exceptions.RequestException as e:
         return JsonResponse({"error": str(e)}, status=500)

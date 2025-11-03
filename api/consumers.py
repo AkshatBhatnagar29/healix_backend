@@ -284,10 +284,7 @@ class CaretakerConsumer(AsyncWebsocketConsumer):
 
 # --- 3. For WebRTC (Private Signaling) ---
 class CallConsumer(AsyncWebsocketConsumer):
-    """
-    This replaces your standalone signaling_server.py
-    It handles the WebRTC signaling between two specific peers.
-    """
+   
     
     async def connect(self):
         user = self.scope["user"]
