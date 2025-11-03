@@ -110,6 +110,66 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         return instance
 
 
+# class StudentProfileSerializer(serializers.ModelSerializer):
+#     name = serializers.CharField(source='user.get_full_name', read_only=True)
+#     username = serializers.CharField(source='user.username', read_only=True)
+#     email = serializers.EmailField(source='user.email', read_only=True)
+#     caretaker_id = serializers.CharField(source='hostel.caretaker.username', read_only=True, allow_null=True)
+#     hostel_name = serializers.CharField(source='hostel.name', allow_null=True, required=False)
+
+#     class Meta:
+#         model = StudentProfile
+#         fields = [
+#             'roll_number', 'name', 'username', 'email', 'date_of_birth',
+#             'allergies', 'bmi', 'water_intake', 'sleep_hours',
+#             'hostel_name', 'caretaker_id'
+#         ]
+#         read_only_fields = ['roll_number', 'name', 'username', 'email', 'caretaker_id', 'hostel_name']  # Added 'hostel_name'
+
+#     # Your fixed update() method from before (no changes needed here—it uses initial_data)
+#     def update(self, instance, validated_data):
+#         print("\n==================== STUDENT PROFILE UPDATE LOG ====================")
+#         print("Initial data received:", self.initial_data)
+#         print("Validated data (flat):", validated_data)
+
+#         # Extract nested hostel from raw initial_data
+#         hostel_data = self.initial_data.get('hostel', None)
+#         hostel_name = None
+
+#         if hostel_data and isinstance(hostel_data, dict) and 'name' in hostel_data:
+#             hostel_name = hostel_data['name']
+#             print(f"Nested hostel name found: {hostel_name}")
+
+#         # Flat fallback (now safer since read-only prevents it from hitting validated_data)
+#         if not hostel_name and 'hostel_name' in self.initial_data:
+#             hostel_name = self.initial_data['hostel_name']
+#             print(f"Flat hostel name found: {hostel_name}")
+
+#         # Update hostel relation
+#         if hostel_name:
+#             from .models import Hostel
+#             try:
+#                 hostel_obj = Hostel.objects.get(name__iexact=hostel_name)
+#                 instance.hostel = hostel_obj
+#                 print(f"✅ Hostel matched and assigned: {hostel_obj.name} (Caretaker: {hostel_obj.caretaker.username if hostel_obj.caretaker else 'None'})")
+#             except Hostel.DoesNotExist:
+#                 print(f"❌ Hostel not found: {hostel_name}")
+#                 raise ValidationError({"hostel": f"Hostel '{hostel_name}' not found."})
+#         else:
+#             print("ℹ️ No hostel provided — setting hostel to None")
+#             instance.hostel = None
+
+#         # Update normal fields
+#         for attr, value in validated_data.items():
+#             print(f"Updating field {attr} = {value}")
+#             setattr(instance, attr, value)
+
+#         instance.save()
+#         print(f"✅ Profile saved successfully for user: {instance.user.username}")
+#         print("====================================================================\n")
+
+#         return instance
+
 # --- Serializer for Doctor Profile ---
 class DoctorProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)

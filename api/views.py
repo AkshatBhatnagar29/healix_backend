@@ -356,3 +356,41 @@ def create_admin_once(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+CLOUDFLARE_ACCOUNT_ID = os.environ.get('CLOUDFLARE_ACCOUNT_ID')
+CLOUDFLARE_API_TOKEN = os.environ.get('CLOUDFLARE_API_TOKEN')
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_POST
+from django.contrib.auth.decorators import login_required
+@login_required  # Ensures only logged-in users can get a token
+@require_http_POST # Good practice to use POST
+def get_turn_credentials(request):
+    """
+    Calls the Cloudflare API to get temporary TURN credentials.
+    """
+    if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
+        return JsonResponse({"error": "Cloudflare credentials not configured on server."}, status=500)
+
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/webrtc/credentials"
+    headers = {
+        "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
+        "Content-Type": "application/json",
+    }
+    # TTL (Time To Live) is 4 hours (14400 seconds).
+    # A user's call shouldn't last longer than this.
+    body = {"ttl": 14400} 
+
+    try:
+        response = requests.post(url, headers=headers, json=body)
+        response.raise_for_status() # Raise an exception for 4xx/5xx errors
+
+        data = response.json()
+
+        # Check for Cloudflare's success response
+        if data.get('success'):
+            # Send the 'result' (which contains the iceServers list) to the client
+            return JsonResponse(data['result'])
+        else:
+            return JsonResponse({"error": "Failed to get credentials from Cloudflare"}, status=500)
+            
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({"error": str(e)}, status=500)
