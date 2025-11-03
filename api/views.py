@@ -387,18 +387,37 @@ from rest_framework.response import Response
 
 # --- THIS IS THE CORRECT VERSION FOR OUR SETUP ---
 
+# In api/views.py
+
+import requests
+from django.conf import settings
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+# --- THIS IS THE CORRECT VERSION, MATCHING YOUR DOCS ---
+
 @api_view(['POST']) # It MUST be a POST request
 @permission_classes([IsAuthenticated])
 def get_turn_credentials(request):
-    url = f"https://api.cloudflare.com/client/v4/accounts/{settings.CLOUDFLARE_ACCOUNT_ID}/webrtc/credentials"
     
-    # Use the "Authorization: Bearer" header for your main API Token
+    # 1. Get the new keys from settings
+    TURN_ID = settings.TURN_ID
+    TURN_API_TOKEN = settings.TURN_API_TOKEN
+
+    if not TURN_ID or not TURN_API_TOKEN:
+        return Response({"error": "TURN keys not configured on server."}, status=500)
+
+    # 2. This is the new, correct API endpoint
+    url = f"https://rtc.live.cloudflare.com/v1/turn/keys/{TURN_ID}/credentials/generate-ice-servers"
+
+    # 3. Use the new "Authorization: Bearer" header
     headers = {
-        "Authorization": f"Bearer {settings.CLOUDFLARE_API_TOKEN}",
+        "Authorization": f"Bearer {TURN_API_TOKEN}",
         "Content-Type": "application/json",
     }
 
-    # A POST request is required to create new credentials
+    # 4. A POST request is required to set the TTL
     body = {"ttl": 14400} # 4-hour time to live
 
     try:
@@ -407,11 +426,10 @@ def get_turn_credentials(request):
         
         data = response.json()
         
-        if data.get('success'):
-            # Return ONLY the 'result' part
-            return Response(data['result'])
-        else:
-            return Response({"error": "Cloudflare API error", "details": data.get('errors')}, status=500)
+        # 5. Check for success and return the 'result'
+        # The new API returns the iceServers directly, not nested in a 'result' key
+        # We just return the whole successful response.
+        return Response(data)
 
     except requests.exceptions.RequestException as e:
         response_text = e.response.text if e.response else "No response"

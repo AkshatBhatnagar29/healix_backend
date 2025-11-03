@@ -537,5 +537,6 @@ DEFAULT_FROM_EMAIL = 'Healix <no-reply@healixind.xyz>'
 import os
 
 CLOUDFLARE_ACCOUNT_ID = os.environ.get("CLOUDFLARE_ACCOUNT_ID")
-CLOUDFLARE_API_TOKEN = os.environ.get("CLOUDFLARE_API_TOKEN")
+TURN_API_TOKEN = os.environ.get("TURN_API_TOKEN")
 CLOUDFLARE_EMAIL = os.environ.get("CLOUDFLARE_EMAIL")
+TURN_ID = os.environ.get("TURN_ID")
