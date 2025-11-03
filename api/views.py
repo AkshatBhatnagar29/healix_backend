@@ -356,17 +356,25 @@ def create_admin_once(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-CLOUDFLARE_ACCOUNT_ID = os.environ.get('CLOUDFLARE_ACCOUNT_ID')
-CLOUDFLARE_API_TOKEN = os.environ.get('CLOUDFLARE_API_TOKEN')
+import requests
+import os
 from django.http import JsonResponse
-from django.views.decorators.http import require_http_POST
+from django.views.decorators.http import require_POST  # <-- 1. THIS IS THE FIX
 from django.contrib.auth.decorators import login_required
-@login_required  # Ensures only logged-in users can get a token
-@require_http_POST # Good practice to use POST
+
+# ... (all your other imports)
+
+
+# This view is for your new TURN server endpoint
+@login_required
+@require_POST  # <-- 2. THIS IS THE FIX
 def get_turn_credentials(request):
     """
     Calls the Cloudflare API to get temporary TURN credentials.
     """
+    CLOUDFLARE_ACCOUNT_ID = os.environ.get('CLOUDFLARE_ACCOUNT_ID')
+    CLOUDFLARE_API_TOKEN = os.environ.get('CLOUDFLARE_API_TOKEN')
+
     if not CLOUDFLARE_ACCOUNT_ID or not CLOUDFLARE_API_TOKEN:
         return JsonResponse({"error": "Cloudflare credentials not configured on server."}, status=500)
 
@@ -375,22 +383,21 @@ def get_turn_credentials(request):
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
         "Content-Type": "application/json",
     }
-    # TTL (Time To Live) is 4 hours (14400 seconds).
-    # A user's call shouldn't last longer than this.
-    body = {"ttl": 14400} 
+    body = {"ttl": 14400} # 4 hours
 
     try:
         response = requests.post(url, headers=headers, json=body)
-        response.raise_for_status() # Raise an exception for 4xx/5xx errors
+        response.raise_for_status() 
 
         data = response.json()
 
-        # Check for Cloudflare's success response
         if data.get('success'):
-            # Send the 'result' (which contains the iceServers list) to the client
             return JsonResponse(data['result'])
         else:
             return JsonResponse({"error": "Failed to get credentials from Cloudflare"}, status=500)
             
     except requests.exceptions.RequestException as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+# ... (all your other views and consumers)
