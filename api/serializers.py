@@ -3,89 +3,54 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, StudentProfile, DoctorProfile, StaffProfile, CaretakerProfile, SOSAlert, Hostel
 from rest_framework.exceptions import ValidationError
 
+# --- Serializer for Student Profile ---
 class StudentProfileSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='user.get_full_name', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
     caretaker_id = serializers.CharField(source='hostel.caretaker.username', read_only=True, allow_null=True)
-
-    # We’ll show hostel name if set, and allow updating it by name
-    hostel_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    hostel_display = serializers.CharField(source='hostel.name', read_only=True, allow_null=True)
+    hostel_name = serializers.CharField(source='hostel.name', allow_null=True, required=False)
 
     class Meta:
         model = StudentProfile
         fields = [
-            'name', 'username', 'email',
-            'roll_number', 'date_of_birth', 'allergies', 'bmi',
-            'water_intake', 'sleep_hours',
-            'hostel_display', 'hostel_name', 'caretaker_id'
+            'roll_number', 'name', 'username', 'email', 'date_of_birth',
+            'allergies', 'bmi', 'water_intake', 'sleep_hours',
+            'hostel_name', 'caretaker_id'
         ]
-        read_only_fields = ['name', 'username', 'email', 'hostel_display', 'caretaker_id']
+        read_only_fields = ['roll_number', 'name', 'username', 'email', 'caretaker_id']
 
     def update(self, instance, validated_data):
-        # Extract hostel_name safely
-        hostel_name = self.initial_data.get('hostel_name', '').strip()
+    # Handle nested or flat hostel input
+        hostel_data = validated_data.pop('hostel', None)
+        hostel_name = None
 
+        # If nested { "hostel": {"name": "..."} } provided
+        if hostel_data and 'name' in hostel_data:
+            hostel_name = hostel_data['name']
+
+        # If flat field provided directly
+        if 'hostel_name' in self.initial_data:
+            hostel_name = self.initial_data['hostel_name']
+
+        # Update hostel relation
         if hostel_name:
+            from .models import Hostel
             try:
                 hostel_obj = Hostel.objects.get(name__iexact=hostel_name)
                 instance.hostel = hostel_obj
             except Hostel.DoesNotExist:
-                raise serializers.ValidationError({
-                    "hostel_name": f"Hostel '{hostel_name}' not found."
-                })
+                raise ValidationError({"hostel_name": f"Hostel '{hostel_name}' not found."})
         else:
-            # If empty or not provided, clear hostel
             instance.hostel = None
 
-        # Update remaining fields normally
+        # Update remaining normal fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
         instance.save()
         return instance
 
-# class StudentProfileSerializer(serializers.ModelSerializer):
-#     hostel_name = serializers.CharField(source='hostel.name', allow_null=True, required=False)
-
-#     hostel_display = serializers.CharField(source='hostel.name', read_only=True)
-#     name = serializers.CharField(source='user.get_full_name', read_only=True)
-#     username = serializers.CharField(source='user.username', read_only=True)
-#     email = serializers.EmailField(source='user.email', read_only=True)
-#     caretaker_id = serializers.CharField(source='hostel.caretaker.username', read_only=True, allow_null=True)
-
-#     class Meta:
-#         model = StudentProfile
-#         fields = [
-#              'name', 'username', 'email', 'hostel_display', 'caretaker_id',
-#             'roll_number', 'date_of_birth',
-#             'allergies', 'bmi', 'water_intake', 'sleep_hours',
-#             'hostel_name'
-#         ]
-#         read_only_fields = ['hostel_display', 'caretaker_id', 'name', 'username', 'email']
-
-#     def update(self, instance, validated_data):
-#         hostel_name = None
-#         if 'hostel' in validated_data and isinstance(validated_data['hostel'], dict):
-#             hostel_name = validated_data['hostel'].get('name')
-#             validated_data.pop('hostel', None)
-#         elif 'hostel_name' in self.initial_data:
-#             hostel_name = self.initial_data.get('hostel_name')
-
-#         if hostel_name:
-#             try:
-#                 hostel_obj = Hostel.objects.get(name__iexact=hostel_name)
-#                 instance.hostel = hostel_obj
-#             except Hostel.DoesNotExist:
-#                 raise serializers.ValidationError({"hostel_name": f"Hostel '{hostel_name}' not found."})
-#         else:
-#             instance.hostel = None
-
-#         for attr, value in validated_data.items():
-#             setattr(instance, attr, value)
-#         instance.save()
-#         return instance
 
 # --- Serializer for Doctor Profile ---
 class DoctorProfileSerializer(serializers.ModelSerializer):
