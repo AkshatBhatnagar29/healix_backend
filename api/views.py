@@ -367,6 +367,7 @@ from django.contrib.auth.decorators import login_required
 
 # This view is for your new TURN server endpoint
 @login_required
+@csrf_exempt
 @require_POST  # <-- 2. THIS IS THE FIX
 def get_turn_credentials(request):
     """
