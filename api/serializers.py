@@ -49,7 +49,8 @@ from rest_framework.exceptions import ValidationError
 #         return instance
 
 class StudentProfileSerializer(serializers.ModelSerializer):
-    hostel_name = serializers.CharField(source='hostel.name', allow_null=True, required=False, write_only=True)
+    hostel_name = serializers.CharField(source='hostel.name', allow_null=True, required=False)
+
     hostel_display = serializers.CharField(source='hostel.name', read_only=True)
     name = serializers.CharField(source='user.get_full_name', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
