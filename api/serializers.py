@@ -55,13 +55,18 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
     caretaker_id = serializers.CharField(source='hostel.caretaker.username', read_only=True, allow_null=True)
+
     class Meta:
         model = StudentProfile
-        fields = [ ... , 'hostel_name', 'hostel_display', ... ]
-        read_only_fields = [...]
+        fields = [
+            'id', 'name', 'username', 'email',
+            'hostel_name', 'hostel_display', 'caretaker_id',
+            # include any other fields your StudentProfile has:
+            'roll_no', 'year', 'department', 'room_number', 'phone'
+        ]
+        read_only_fields = ['hostel_display', 'caretaker_id', 'name', 'username', 'email']
 
     def update(self, instance, validated_data):
-        # handle nested mapping
         hostel_name = None
         if 'hostel' in validated_data and isinstance(validated_data['hostel'], dict):
             hostel_name = validated_data['hostel'].get('name')
@@ -78,11 +83,11 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         else:
             instance.hostel = None
 
-        # rest of fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         return instance
+
 # --- Serializer for Doctor Profile ---
 class DoctorProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
