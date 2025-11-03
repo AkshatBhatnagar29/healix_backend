@@ -15,7 +15,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         model = StudentProfile
         fields = [
             'roll_number', 'name', 'username', 'email', 'date_of_birth',
-            'allergies', 'bmi', 'water_intake', 'sleep_hours',
+            'allergies', 'bmi', 'water_intake', 'sleep_hours','hostel'
             'hostel_name', 'caretaker_id'
         ]
         read_only_fields = ['roll_number', 'name', 'username', 'email', 'caretaker_id']
