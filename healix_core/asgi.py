@@ -152,131 +152,58 @@
 #                 re_path(r"ws/call/$", api.consumers.CallConsumer.as_asgi()),
 #             ])
 #         )
-# #     ),
-# # })
-# import os
-# import logging
-# from urllib.parse import parse_qs
-
-# # Non-Django imports first
-# from channels.routing import ProtocolTypeRouter, URLRouter
-# from channels.security.websocket import AllowedHostsOriginValidator
-# from channels.db import database_sync_to_async
-# from django.urls import re_path
-
-# # Set default settings FIRST
-# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'healix_core.settings')
-
-# # Configure Django settings NOW
-# from django.core.asgi import get_asgi_application
-# http_application = get_asgi_application()
-
-# # NOW import Django models and other Django-specific things
-# from django.contrib.auth import get_user_model
-# from django.contrib.auth.models import AnonymousUser
-# from rest_framework_simplejwt.tokens import AccessToken
-# from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-
-# # Import your consumers (after Django init)
-# import api.consumers
-
-# User = get_user_model()
-
-# logger = logging.getLogger(__name__)
-
-# @database_sync_to_async
-# def get_user_from_token(token_key):
-#     """
-#     Asynchronously gets the user associated with a given access token.
-#     """
-#     logger.info(f"Attempting to validate token: {token_key[:20]}...")
-#     try:
-#         access_token = AccessToken(token_key)
-#         user_id = access_token['user_id']
-#         user = User.objects.get(id=user_id)
-#         logger.info(f"Token VALID. User: {user.username}")
-#         return user
-#     except (InvalidToken, TokenError):
-#         logger.warning("!!! TOKEN ERROR: Token is invalid or expired.")
-#         return AnonymousUser()
-#     except User.DoesNotExist:
-#         logger.warning("!!! TOKEN ERROR: User in token does not exist.")
-#         return AnonymousUser()
-#     except Exception as e:
-#         logger.error(f"!!! TOKEN ERROR: An unexpected error occurred: {e}")
-#         return AnonymousUser()
-
-# class TokenAuthMiddleware:
-#     def __init__(self, inner):
-#         self.inner = inner
-
-#     async def __call__(self, scope, receive, send):
-#         query_string = scope.get("query_string", b"").decode("utf-8")
-#         query_params = parse_qs(query_string)
-        
-#         token = query_params.get("token", [None])[0]
-
-#         if token:
-#             scope["user"] = await get_user_from_token(token)
-#         else:
-#             logger.warning("!!! NO TOKEN: No token found in query string.")
-#             scope["user"] = AnonymousUser()
-
-#         if scope["user"].is_anonymous:
-#             logger.warning("Anonymous user rejected.")
-#             scope["type"] = "disconnected"
-#             await send({"type": "websocket.close", "code": 4001})
-#             return
-
-#         return await self.inner(scope, receive, send)
-
-# # Define the router - WEBSOCKET BEFORE HTTP (critical for Render proxy)
-# application = ProtocolTypeRouter({
-#     "websocket": AllowedHostsOriginValidator(
-#         TokenAuthMiddleware(
-#             URLRouter([
-#                 re_path(r"ws/sos_alerts/$", api.consumers.SOSConsumer.as_asgi()),
-#                 re_path(r"ws/caretaker_alerts/$", api.consumers.CaretakerConsumer.as_asgi()),
-#                 re_path(r"ws/call/$", api.consumers.CallConsumer.as_asgi()),
-#             ])
-#         )
 #     ),
-#     "http": http_application,  # Fallback last
 # })
-
-
-# healix_core/asgi.py
 import os
 import logging
 from urllib.parse import parse_qs
 
+# Non-Django imports first
 from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.security.websocket import OriginValidator
+from channels.security.websocket import AllowedHostsOriginValidator
 from channels.db import database_sync_to_async
 from django.urls import re_path
 
+# Set default settings FIRST
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'healix_core.settings')
 
+# Configure Django settings NOW
 from django.core.asgi import get_asgi_application
 http_application = get_asgi_application()
 
+# NOW import Django models and other Django-specific things
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
+# Import your consumers (after Django init)
 import api.consumers
 
-logger = logging.getLogger(__name__)
 User = get_user_model()
 
+logger = logging.getLogger(__name__)
+
 @database_sync_to_async
-def get_user_from_token(token_key: str):
+def get_user_from_token(token_key):
+    """
+    Asynchronously gets the user associated with a given access token.
+    """
+    logger.info(f"Attempting to validate token: {token_key[:20]}...")
     try:
         access_token = AccessToken(token_key)
         user_id = access_token['user_id']
-        return User.objects.get(id=user_id)
-    except (InvalidToken, TokenError, User.DoesNotExist):
+        user = User.objects.get(id=user_id)
+        logger.info(f"Token VALID. User: {user.username}")
+        return user
+    except (InvalidToken, TokenError):
+        logger.warning("!!! TOKEN ERROR: Token is invalid or expired.")
+        return AnonymousUser()
+    except User.DoesNotExist:
+        logger.warning("!!! TOKEN ERROR: User in token does not exist.")
+        return AnonymousUser()
+    except Exception as e:
+        logger.error(f"!!! TOKEN ERROR: An unexpected error occurred: {e}")
         return AnonymousUser()
 
 class TokenAuthMiddleware:
@@ -286,25 +213,33 @@ class TokenAuthMiddleware:
     async def __call__(self, scope, receive, send):
         query_string = scope.get("query_string", b"").decode("utf-8")
         query_params = parse_qs(query_string)
+        
         token = query_params.get("token", [None])[0]
-        scope["user"] = await get_user_from_token(token) if token else AnonymousUser()
-        # Do not close here; let consumers decide based on role/user.
+
+        if token:
+            scope["user"] = await get_user_from_token(token)
+        else:
+            logger.warning("!!! NO TOKEN: No token found in query string.")
+            scope["user"] = AnonymousUser()
+
+        if scope["user"].is_anonymous:
+            logger.warning("Anonymous user rejected.")
+            scope["type"] = "disconnected"
+            await send({"type": "websocket.close", "code": 4001})
+            return
+
         return await self.inner(scope, receive, send)
 
+# Define the router - WEBSOCKET BEFORE HTTP (critical for Render proxy)
 application = ProtocolTypeRouter({
-    "websocket": OriginValidator(
+    "websocket": AllowedHostsOriginValidator(
         TokenAuthMiddleware(
             URLRouter([
                 re_path(r"ws/sos_alerts/$", api.consumers.SOSConsumer.as_asgi()),
                 re_path(r"ws/caretaker_alerts/$", api.consumers.CaretakerConsumer.as_asgi()),
                 re_path(r"ws/call/$", api.consumers.CallConsumer.as_asgi()),
             ])
-        ),
-        [
-            "https://healix-backend-1.onrender.com",
-            "http://localhost:8000",
-            "http://127.0.0.1:8000",
-        ],
+        )
     ),
-    "http": http_application,
+    "http": http_application,  # Fallback last
 })
