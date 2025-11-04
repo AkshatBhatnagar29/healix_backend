@@ -54,34 +54,35 @@
 #         )
 #     ),
 # })
-
-
-
 import os
-import logging  # For prod logging
+import logging
 from urllib.parse import parse_qs
 
-# Django/Channels imports
-from django.core.asgi import get_asgi_application
+# Non-Django imports first
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from channels.db import database_sync_to_async
+from django.urls import re_path
+
+# Set default settings FIRST
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'healix_core.settings')
+
+# Configure Django settings NOW
+from django.core.asgi import get_asgi_application
+http_application = get_asgi_application()
+
+# NOW import Django models and other Django-specific things
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
-from django.urls import re_path  # Changed to re_path for exact matching
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
-# Set default settings and initialize Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'healix_core.settings')
-http_application = get_asgi_application()
-
-# Import your consumers (after Django init to avoid import issues)
+# Import your consumers (after Django init)
 import api.consumers
 
 User = get_user_model()
 
-logger = logging.getLogger(__name__)  # Use logger instead of print
+logger = logging.getLogger(__name__)
 
 @database_sync_to_async
 def get_user_from_token(token_key):
@@ -130,26 +131,25 @@ class TokenAuthMiddleware:
             logger.warning("!!! NO TOKEN: No token found in query string.")
             scope["user"] = AnonymousUser()
 
-        # NEW: Reject anonymous users early (security)
+        # Reject anonymous users early (security)
         if scope["user"].is_anonymous:
             logger.warning("Anonymous user rejected.")
-            scope["type"] = "disconnected"  # Prevent further processing
-            await send({"type": "websocket.close", "code": 4001})  # Unauthorized
+            scope["type"] = "disconnected"
+            await send({"type": "websocket.close", "code": 4001})
             return
 
-        # Continue to the inner application
         return await self.inner(scope, receive, send)
 
 
-# Define the router for HTTP and all 3 WebSockets
+# Define the router
 application = ProtocolTypeRouter({
     "http": http_application,
     "websocket": AllowedHostsOriginValidator(
         TokenAuthMiddleware(
             URLRouter([
-                re_path(r"ws/sos_alerts/$", api.consumers.SOSConsumer.as_asgi()),  # Exact match
+                re_path(r"ws/sos_alerts/$", api.consumers.SOSConsumer.as_asgi()),
                 re_path(r"ws/caretaker_alerts/$", api.consumers.CaretakerConsumer.as_asgi()),
-                re_path(r"ws/call/$", api.consumers.CallConsumer.as_asgi()),  # For WebRTC
+                re_path(r"ws/call/$", api.consumers.CallConsumer.as_asgi()),
             ])
         )
     ),
