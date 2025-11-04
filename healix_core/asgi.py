@@ -154,8 +154,6 @@
 #         )
 #     ),
 # })
-
-
 import os
 import logging
 from urllib.parse import parse_qs
@@ -163,7 +161,6 @@ from urllib.parse import parse_qs
 # Non-Django imports first
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
-from channels.auth import AuthMiddlewareStack  # For token in scope
 from channels.db import database_sync_to_async
 from django.urls import re_path
 
@@ -233,17 +230,15 @@ class TokenAuthMiddleware:
 
         return await self.inner(scope, receive, send)
 
-# Define the router - WEBSOCKET BEFORE HTTP (critical for priority)
+# Define the router - WEBSOCKET BEFORE HTTP (critical for Render proxy)
 application = ProtocolTypeRouter({
     "websocket": AllowedHostsOriginValidator(
         TokenAuthMiddleware(
-            AuthMiddlewareStack(  # Handles token auth in scope
-                URLRouter([
-                    re_path(r"ws/sos_alerts/$", api.consumers.SOSConsumer.as_asgi()),
-                    re_path(r"ws/caretaker_alerts/$", api.consumers.CaretakerConsumer.as_asgi()),
-                    re_path(r"ws/call/$", api.consumers.CallConsumer.as_asgi()),
-                ])
-            )
+            URLRouter([
+                re_path(r"ws/sos_alerts/$", api.consumers.SOSConsumer.as_asgi()),
+                re_path(r"ws/caretaker_alerts/$", api.consumers.CaretakerConsumer.as_asgi()),
+                re_path(r"ws/call/$", api.consumers.CallConsumer.as_asgi()),
+            ])
         )
     ),
     "http": http_application,  # Fallback last
