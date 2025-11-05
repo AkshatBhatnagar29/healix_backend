@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, StudentProfile, DoctorProfile, StaffProfile, CaretakerProfile, SOSAlert, Hostel
+from .models import User, StudentProfile, DoctorProfile, StaffProfile, CaretakerProfile, SOSAlert, Hostel,Prescription, PrescribedMedication
 from rest_framework.exceptions import ValidationError
 
 # --- Serializer for Student Profile ---
@@ -299,3 +299,181 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             })
         return data
 
+# In api/serializers.py
+# Make sure to import Appointment at the top
+from .models import Appointment, User # ... and your other models
+
+# In api/serializers.py
+
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+from .models import Appointment, DoctorSchedule, User # Import models
+
+# ... (Your other serializers like StudentProfileSerializer, etc.) ...
+
+# --- THIS IS THE APPOINTMENT BOOKING SERIALIZER ---
+
+class AppointmentCreateSerializer(serializers.ModelSerializer):
+    """
+    Handles the creation of a new appointment.
+    The 'student' is set automatically from the logged-in user.
+    """
+    # Accepts the doctor's username, which is what the Flutter code has (doctor.id)
+    doctor = serializers.SlugRelatedField(
+        queryset=User.objects.filter(role='doctor'), 
+        slug_field='username'
+    )
+    
+    # Automatically sets the student from the logged-in user
+    student = serializers.HiddenField(default=serializers.CurrentUserDefault()) 
+    
+    class Meta:
+        model = Appointment
+        # 'status' will use the model's default ('Upcoming')
+        fields = ['doctor', 'appointment_time', 'reason', 'student'] 
+    
+    def validate(self, data):
+        # 1. Ensure the user booking is a student
+        if self.context['request'].user.role != 'student':
+             raise ValidationError("Only students can book appointments.")
+
+        # 2. Basic validation to prevent double-booking the *exact* same slot
+        doctor = data.get('doctor')
+        time = data.get('appointment_time')
+
+        if Appointment.objects.filter(doctor=doctor, appointment_time=time, status='Upcoming').exists():
+            raise ValidationError("This time slot is no longer available. Please select another.")
+
+        return data
+
+# --- OTHER SERIALIZERS FOR APPOINTMENT SYSTEM ---
+
+class DoctorScheduleSerializer(serializers.ModelSerializer):
+    """
+    Serializer for managing a doctor's weekly schedule.
+    """
+    doctor_username = serializers.CharField(source='doctor.username', read_only=True)
+
+    class Meta:
+        model = DoctorSchedule
+        fields = ['id', 'doctor', 'doctor_username', 'day_of_week', 'start_time', 'end_time']
+        read_only_fields = ['doctor_username']
+
+class AppointmentListSerializer(serializers.ModelSerializer):
+    """
+    Serializer for listing appointments, showing student details.
+    """
+    # Get student's full name from the 'student' (User) object
+    student_name = serializers.CharField(source='student.get_full_name', read_only=True)
+    student_id = serializers.CharField(source='student.username', read_only=True)
+    
+    # Format the time for easier use on the frontend
+    appointment_time = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S")
+
+    class Meta:
+        model = Appointment
+        fields = [
+            'id', 
+            'student_name', 
+            'student_id',
+            'appointment_time', 
+            'reason', 
+            'status'
+        ]
+
+class PrescribedMedicationSerializer(serializers.ModelSerializer):
+    """ Serializer for a single line of medication """
+    class Meta:
+        model = PrescribedMedication
+        fields = ['id', 'name', 'dosage', 'frequency', 'duration']
+        read_only_fields = ['id']
+
+class PrescriptionDetailSerializer(serializers.ModelSerializer):
+    """
+    Serializer for viewing a prescription with all its medications.
+    """
+    # Use the serializer above to show a nested list of medications
+    medications = PrescribedMedicationSerializer(many=True, read_only=True)
+    doctor_name = serializers.CharField(source='doctor.get_full_name', read_only=True)
+    student_name = serializers.CharField(source='student.get_full_name', read_only=True)
+    appointment_time = serializers.DateTimeField(source='appointment.appointment_time', read_only=True)
+
+    class Meta:
+        model = Prescription
+        fields = [
+            'id', 'appointment', 'doctor', 'student', 'issue_date', 'general_notes', 
+            'medications', 'doctor_name', 'student_name', 'appointment_time'
+        ]
+
+class PrescriptionCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for CREATING a prescription.
+    Accepts a nested list of medications.
+    """
+    # This 'write-only' field accepts a list of medication objects
+    medications = PrescribedMedicationSerializer(many=True, write_only=True)
+    
+    class Meta:
+        model = Prescription
+        fields = ['id', 'appointment', 'general_notes', 'medications']
+
+    def create(self, validated_data):
+        # Pop the nested medication data
+        medications_data = validated_data.pop('medications')
+        
+        # Get the appointment object
+        appointment = validated_data.get('appointment')
+        
+        # Manually set the doctor and student from the appointment
+        validated_data['doctor'] = appointment.doctor
+        validated_data['student'] = appointment.student
+        
+        # Create the main Prescription "folder"
+        prescription = Prescription.objects.create(**validated_data)
+        
+        # Create each PrescribedMedication object and link it to the prescription
+        for med_data in medications_data:
+            PrescribedMedication.objects.create(prescription=prescription, **med_data)
+            
+        return prescription
+    
+# In api/serializers.py
+# ... (Import StudentProfile, User, and DoctorSchedule at the top)
+
+# --- ⭐️ ADD THIS NEW SERIALIZER ⭐️ ---
+class StaffStudentVitalsSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Staff to update a student's vitals.
+    We only expose the fields staff should be able to edit.
+    """
+    class Meta:
+        model = StudentProfile
+        fields = ['bmi', 'water_intake', 'sleep_hours']
+
+# --- ⭐️ ADD THIS NEW SERIALIZER ⭐️ ---
+class DoctorListSerializer(serializers.ModelSerializer):
+    """
+    A simple serializer to list doctors for a dropdown menu.
+    """
+    full_name = serializers.CharField(source='get_full_name')
+    class Meta:
+        model = User
+        fields = ['username', 'full_name']
+
+# --- ⭐️ ADD/RE-ADD THIS SERIALIZER ⭐️ ---
+class DoctorScheduleSerializer(serializers.ModelSerializer):
+    """
+    Serializer for managing a doctor's weekly schedule.
+    """
+    doctor_username = serializers.CharField(source='doctor.username', read_only=True)
+    
+    # We need 'doctor' to be a writeable username field
+    doctor = serializers.SlugRelatedField(
+        queryset=User.objects.filter(role='doctor'),
+        slug_field='username'
+    )
+
+    class Meta:
+        model = DoctorSchedule
+        fields = ['id', 'doctor', 'doctor_username', 'day_of_week', 'start_time', 'end_time']
+        read_only_fields = ['id', 'doctor_username']

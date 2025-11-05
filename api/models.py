@@ -1,27 +1,6 @@
 
 
-# # ... Other models like Appointment, Prescription, etc. remain the same ...
-# class Appointment(models.Model):
-#     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments_as_student')
-#     doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments_as_doctor')
-#     appointment_time = models.DateTimeField()
-#     reason = models.TextField(blank=True, null=True)
-#     status = models.CharField(max_length=20, choices=[('Upcoming', 'Upcoming'), ('Completed', 'Completed'), ('Cancelled', 'Cancelled')])
-#     created_at = models.DateTimeField(auto_now_add=True)
 
-# class Prescription(models.Model):
-#     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
-#     medication_details = models.JSONField(null=True, blank=True)
-#     follow_up_notes = models.TextField(blank=True, null=True)
-#     issued_at = models.DateTimeField(auto_now_add=True)
-
-# class LabReport(models.Model):
-#     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lab_reports')
-#     doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ordered_lab_reports')
-#     test_name = models.CharField(max_length=200)
-#     status = models.CharField(max_length=20, choices=[('Pending', 'Pending'), ('In Progress', 'In Progress'), ('Ready', 'Ready')])
-#     report_file_url = models.CharField(max_length=255, blank=True, null=True)
-#     ordered_at = models.DateTimeField(auto_now_add=True)
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser
@@ -143,3 +122,94 @@ class SOSAlert(models.Model):
     
     
     resolved_at = models.DateTimeField(null=True, blank=True)
+class Appointment(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments_as_student')
+    doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments_as_doctor')
+    appointment_time = models.DateTimeField()
+    reason = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=[('Upcoming', 'Upcoming'), ('Completed', 'Completed'), ('Cancelled', 'Cancelled')])
+    created_at = models.DateTimeField(auto_now_add=True)
+
+# In api/models.py
+# ... (at the end, after your other models like DoctorSchedule, etc.)
+
+class Prescription(models.Model):
+    """
+    Represents a single prescription event, linked to an appointment.
+    This acts as a "folder" for all medications prescribed during that visit.
+    """
+    # Link to the specific appointment
+    appointment = models.OneToOneField(
+        Appointment, 
+        on_delete=models.CASCADE, 
+        related_name='prescription'
+    )
+    # The doctor who issued it (denormalized for easy lookup)
+    doctor = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='issued_prescriptions',
+        limit_choices_to={'role': 'doctor'}
+    )
+    # The student who received it (denormalized for easy lookup)
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='prescriptions',
+        limit_choices_to={'role': 'student'}
+    )
+    # General notes from the doctor
+    general_notes = models.TextField(blank=True, null=True)
+    issue_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Prescription for {self.student.username} from {self.issue_date.date()}"
+
+class PrescribedMedication(models.Model):
+    """
+    Represents a single medication line item within a Prescription.
+    """
+    prescription = models.ForeignKey(
+        Prescription, 
+        on_delete=models.CASCADE, 
+        related_name='medications'
+    )
+    name = models.CharField(max_length=255)
+    dosage = models.CharField(max_length=100, blank=True, help_text="e.g., 500mg or 1 tablet")
+    frequency = models.CharField(max_length=100, blank=True, help_text="e.g., Twice a day")
+    duration = models.CharField(max_length=100, blank=True, help_text="e.g., 7 days")
+
+    def __str__(self):
+        return f"{self.name} ({self.dosage})"
+
+class LabReport(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lab_reports')
+    doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ordered_lab_reports')
+    test_name = models.CharField(max_length=200)
+    status = models.CharField(max_length=20, choices=[('Pending', 'Pending'), ('In Progress', 'In Progress'), ('Ready', 'Ready')])
+    report_file_url = models.CharField(max_length=255, blank=True, null=True)
+    ordered_at = models.DateTimeField(auto_now_add=True)
+
+class DoctorSchedule(models.Model):
+    doctor = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        limit_choices_to={'role': 'doctor'},
+        related_name='schedule'
+    )
+    day_of_week = models.IntegerField(
+        choices=[
+            (1, 'Monday'), (2, 'Tuesday'), (3, 'Wednesday'), 
+            (4, 'Thursday'), (5, 'Friday'), (6, 'Saturday'), (7, 'Sunday')
+        ]
+    )
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    
+    class Meta:
+        # A doctor can only have one entry for a specific day
+        unique_together = ('doctor', 'day_of_week')
+
+    def __str__(self):
+        return f"{self.doctor.username} - {self.get_day_of_week_display()}"

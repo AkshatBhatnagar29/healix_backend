@@ -2,12 +2,13 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import (
     DoctorProfile, StaffProfile, StudentProfile, CaretakerProfile, 
-    Hostel, User, SOSAlert
+    Hostel, User, SOSAlert,DoctorSchedule, Appointment,Prescription
 )
+import datetime
 from .serializers import (
     DoctorProfileSerializer, StaffProfileSerializer, StudentProfileSerializer,
     CaretakerProfileSerializer, UserSerializer, MyTokenObtainPairSerializer, 
-    SOSAlertSerializer
+    SOSAlertSerializer,AppointmentCreateSerializer, AppointmentListSerializer,PrescriptionDetailSerializer, PrescriptionCreateSerializer
 )
 from channels.layers import get_channel_layer
 from django.views.decorators.csrf import csrf_exempt
@@ -434,3 +435,250 @@ def get_turn_credentials(request):
     except requests.exceptions.RequestException as e:
         response_text = e.response.text if e.response else "No response"
         return Response({"error": str(e), "response_text": response_text}, status=500)
+    
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_available_slots(request, username, date_str):
+    """
+    Calculates and returns a list of available 1-hour time slots
+    for a specific doctor on a specific date.
+    
+    Args:
+        username (str): The username of the doctor.
+        date_str (str): The date in 'YYYY-MM-DD' format.
+    """
+    
+    # 1. Validate the Doctor
+    try:
+        doctor = User.objects.get(username=username, role='doctor')
+    except User.DoesNotExist:
+        return Response(
+            {"error": "Doctor not found."}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    # 2. Validate the Date
+    try:
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        if date < timezone.now().date():
+            return Response(
+                {"error": "Cannot book appointments in the past."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except ValueError:
+        return Response(
+            {"error": "Invalid date format. Use YYYY-MM-DD."}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # 3. Find the Doctor's Schedule for that day
+    # (1=Monday, 2=Tuesday, ... 7=Sunday)
+    day_of_week = date.weekday() + 1 
+    
+    try:
+        schedule = DoctorSchedule.objects.get(
+            doctor=doctor, 
+            day_of_week=day_of_week
+        )
+    except DoctorSchedule.DoesNotExist:
+        # Doctor does not work on this day
+        return Response([], status=status.HTTP_200_OK) 
+
+    # 4. Find all existing 'Upcoming' appointments for that doctor on that day
+    existing_appointments = Appointment.objects.filter(
+        doctor=doctor,
+        appointment_time__date=date,
+        status='Upcoming'
+    )
+    
+    # Create a set of booked times for fast lookup
+    # e.g., {datetime.time(10, 0), datetime.time(14, 0)}
+    booked_times = {apt.appointment_time.time() for apt in existing_appointments}
+
+    # 5. Generate all possible 1-hour slots and filter out booked ones
+    available_slots = []
+    slot_duration = timedelta(hours=1)
+    
+    # Combine the date with the schedule's start time
+    current_slot_start = datetime.combine(date, schedule.start_time)
+    # Combine the date with the schedule's end time
+    end_time_datetime = datetime.combine(date, schedule.end_time)
+
+    while current_slot_start < end_time_datetime:
+        # Check if this slot's time is in our 'booked_times' set
+        if current_slot_start.time() not in booked_times:
+            # Format it nicely for the frontend (e.g., "09:00 AM")
+            available_slots.append(current_slot_start.strftime('%I:%M %p'))
+        
+        # Move to the next slot
+        current_slot_start += slot_duration
+
+    return Response(available_slots, status=status.HTTP_200_OK)
+
+
+class DoctorAppointmentListView(generics.ListAPIView):
+    """
+    Lists all appointments (upcoming and past) for the
+    currently logged-in doctor.
+    """
+    serializer_class = AppointmentListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Get the currently logged-in user
+        user = self.request.user
+
+        if user.role != 'doctor':
+            # You can also raise a PermissionDenied error
+            return Appointment.objects.none()
+
+        # Return all appointments for this doctor, ordered by time
+        # Use 'select_related' for efficiency to avoid N+1 queries
+        return Appointment.objects.filter(doctor=user) \
+                                .select_related('student') \
+                                .order_by('-appointment_time')
+class AppointmentCreateView(generics.CreateAPIView):
+    """
+    Creates a new appointment for the logged-in student.
+    Matches: POST /api/appointments/create/
+    """
+    queryset = Appointment.objects.all()
+    serializer_class = AppointmentCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class PrescriptionCreateView(generics.CreateAPIView):
+   
+    queryset = Prescription.objects.all()
+    serializer_class = PrescriptionCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        # Check if user is a doctor
+        if request.user.role != 'doctor':
+            return Response(
+                {"error": "Only doctors can issue prescriptions."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check if a prescription for this appointment already exists (OneToOne)
+        appointment_id = request.data.get('appointment')
+        if Prescription.objects.filter(appointment__id=appointment_id).exists():
+             return Response(
+                {"error": "A prescription for this appointment already exists."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().create(request, *args, **kwargs)
+
+class StudentPrescriptionListView(generics.ListAPIView):
+    """
+    Student: Get a list of all their past prescriptions.
+    GET /api/prescriptions/student/
+    """
+    serializer_class = PrescriptionDetailSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Return only prescriptions for the logged-in student
+        return Prescription.objects.filter(student=self.request.user) \
+            .select_related('doctor', 'student', 'appointment') \
+            .prefetch_related('medications') \
+            .order_by('-issue_date')
+
+class AppointmentPrescriptionDetailView(generics.RetrieveAPIView):
+    """
+    Doctor/Student: Get the prescription for a single appointment.
+    GET /api/prescriptions/appointment/<int:appointment_id>/
+    """
+    serializer_class = PrescriptionDetailSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Prescription.objects.all()
+    lookup_field = 'appointment__id'
+    lookup_url_kwarg = 'appointment_id'
+
+    def get_object(self):
+        # Check permissions
+        obj = super().get_object()
+        user = self.request.user
+        if obj.student == user or obj.doctor == user:
+            return obj
+        raise permissions.PermissionDenied("You do not have access to this prescription.")
+    
+
+# In api/views.py
+# ... (Import StudentProfile, DoctorSchedule, DoctorScheduleSerializer, etc.)
+
+# --- ⭐️ ADD THIS NEW VIEW ⭐️ ---
+class StaffStudentVitalsUpdateView(generics.RetrieveUpdateAPIView):
+    """
+    Allows staff to retrieve and update a student's vitals.
+    Looks up the StudentProfile by the user's username.
+    """
+    queryset = StudentProfile.objects.all()
+    serializer_class = StaffStudentVitalsSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'user__username' # Find profile by username
+    lookup_url_kwarg = 'username'
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        if request.user.role != 'staff':
+            self.permission_denied(request, message="Only staff can access this.")
+
+# --- ⭐️ ADD THIS NEW VIEW ⭐️ ---
+class DoctorListForStaffView(generics.ListAPIView):
+    """
+    Provides a simple list of all doctors for staff UI.
+    """
+    queryset = User.objects.filter(role='doctor')
+    serializer_class = DoctorListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        if request.user.role != 'staff':
+            self.permission_denied(request, message="Only staff can access this.")
+
+# --- ⭐️ ADD/RE-ADD THIS VIEW ⭐️ ---
+class StaffScheduleUpdateView(generics.CreateAPIView):
+    """
+    View for Staff to create or update a doctor's schedule for a day.
+    """
+    queryset = DoctorSchedule.objects.all()
+    serializer_class = DoctorScheduleSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        if request.user.role != 'staff':
+            return Response({"error": "Only staff are authorized to update schedules."}, status=status.HTTP_403_FORBIDDEN)
+        
+        doctor_username = request.data.get('doctor')
+        day_of_week = request.data.get('day_of_week')
+        
+        try:
+            doctor = User.objects.get(username=doctor_username, role='doctor')
+        except User.DoesNotExist:
+            return Response({"error": "Doctor not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Use get_or_create to handle updates
+        schedule_instance, created = DoctorSchedule.objects.get_or_create(
+            doctor=doctor,
+            day_of_week=day_of_week,
+            defaults={
+                'start_time': request.data.get('start_time'), 
+                'end_time': request.data.get('end_time')
+            }
+        )
+        
+        # If it wasn't created, it means we update it
+        if not created:
+            serializer = self.get_serializer(schedule_instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        serializer = self.get_serializer(schedule_instance)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
