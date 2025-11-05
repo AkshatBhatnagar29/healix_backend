@@ -8,7 +8,7 @@ import datetime
 from .serializers import (
     DoctorProfileSerializer, StaffProfileSerializer, StudentProfileSerializer,
     CaretakerProfileSerializer, UserSerializer, MyTokenObtainPairSerializer, 
-    SOSAlertSerializer,AppointmentCreateSerializer, AppointmentListSerializer,PrescriptionDetailSerializer, PrescriptionCreateSerializer, StudentPrescriptionListSerializer,StaffStudentVitalsSerializer,DoctorListSerializer,DoctorScheduleSerializer
+    SOSAlertSerializer,AppointmentCreateSerializer, AppointmentListSerializer,PrescriptionDetailSerializer, PrescriptionCreateSerializer, StaffStudentVitalsSerializer,DoctorListSerializer,DoctorScheduleSerializer
 )
 from channels.layers import get_channel_layer
 from django.views.decorators.csrf import csrf_exempt
