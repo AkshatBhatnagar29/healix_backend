@@ -56,15 +56,26 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source='user.email', read_only=True)
     caretaker_id = serializers.CharField(source='hostel.caretaker.username', read_only=True, allow_null=True)
     hostel_name = serializers.CharField(source='hostel.name', allow_null=True, required=False)
-
+    caretaker_phone = serializers.CharField(
+        source='hostel.caretaker.caretaker_profile.phone_number', 
+        read_only=True, 
+        allow_null=True # Returns null if no hostel or caretaker is assigned
+    )
+    
+    # Gets the caretaker's full name for display
+    caretaker_name = serializers.CharField(
+        source='hostel.caretaker.full_name', # Assumes 'full_name' is on your User model
+        read_only=True, 
+        allow_null=True
+    )
     class Meta:
         model = StudentProfile
         fields = [
             'roll_number', 'name', 'username', 'email', 'date_of_birth',
             'allergies', 'bmi', 'water_intake', 'sleep_hours',
-            'hostel_name', 'caretaker_id'
+            'hostel_name', 'caretaker_id', 'caretaker_name', 'caretaker_phone'
         ]
-        read_only_fields = ['roll_number', 'name', 'username', 'email', 'caretaker_id']
+        read_only_fields = ['roll_number', 'name', 'username', 'email', 'caretaker_id', 'caretaker_name', 'caretaker_phone']
 
     def update(self, instance, validated_data):
         print("\n==================== STUDENT PROFILE UPDATE LOG ====================")
