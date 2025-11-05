@@ -39,7 +39,7 @@ urlpatterns = [
     
     # POST /api/staff/schedule/update/
     path('staff/schedule/update/', views.StaffScheduleUpdateView.as_view(), name='staff-schedule-update'),
-
+    path('doctors/list-available/', views.AvailableDoctorListView.as_view(), name='doctor-list-available'),
     # GET /api/staff/doctors/
     path('staff/doctors/', views.DoctorListForStaffView.as_view(), name='staff-doctor-list'),
 ]

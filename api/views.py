@@ -682,3 +682,28 @@ class StaffScheduleUpdateView(generics.CreateAPIView):
 
         serializer = self.get_serializer(schedule_instance)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class AvailableDoctorListView(generics.ListAPIView):
+    """
+    Lists doctors who are scheduled to work *today*.
+    Matches: GET /api/doctors/list-available/
+    """
+    serializer_class = DoctorProfileSerializer
+    permission_classes = [permissions.IsAuthenticated] 
+
+    def get_queryset(self):
+        # Get today's day of the week 
+        # (1=Monday, 7=Sunday to match your model)
+        current_day = timezone.now().weekday() + 1 
+        
+        # Find all doctor IDs scheduled to work today
+        scheduled_doctor_ids = DoctorSchedule.objects.filter(
+            day_of_week=current_day
+        ).values_list('doctor_id', flat=True).distinct()
+
+        # Return the profiles of those doctors
+        queryset = DoctorProfile.objects.filter(
+            user__id__in=scheduled_doctor_ids
+        ).select_related('user')
+        
+        return queryset
