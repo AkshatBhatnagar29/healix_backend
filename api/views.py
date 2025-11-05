@@ -4,7 +4,8 @@ from .models import (
     DoctorProfile, StaffProfile, StudentProfile, CaretakerProfile, 
     Hostel, User, SOSAlert,DoctorSchedule, Appointment,Prescription
 )
-import datetime
+# import datetime
+from datetime import datetime, timedelta
 from .serializers import (
     DoctorProfileSerializer, StaffProfileSerializer, StudentProfileSerializer,
     CaretakerProfileSerializer, UserSerializer, MyTokenObtainPairSerializer, 
