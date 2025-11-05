@@ -19,7 +19,7 @@ urlpatterns = [
     # Doctor Availability
     path('doctor/available/', views.set_doctor_available, name='doctor-available'),
     path('doctor/unavailable/', views.set_doctor_unavailable, name='doctor-unavailable'),
-    path('doctors/<str:username>/slots/<str:date>/', views.get_available_slots, name='get-available-slots'),
+    path('doctors/<str:username>/slots/<str:date_str>/', views.get_available_slots, name='get-available-slots'),
     # SOS & Alerts
     path('sos/trigger/', views.SOSCreateView.as_view(), name='sos-trigger'),
     path('sos/active/', views.SOSActiveListView.as_view(), name='sos-active-list'),
