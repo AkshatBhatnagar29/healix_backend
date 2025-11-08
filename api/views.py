@@ -4,12 +4,15 @@ from .models import (
     DoctorProfile, StaffProfile, StudentProfile, CaretakerProfile, 
     Hostel, User, SOSAlert,DoctorSchedule, Appointment,Prescription
 )
+from rest_framework import serializers
 # import datetime
+from django.db import IntegrityError
+# from .serializers import 
 from datetime import datetime, timedelta
 from .serializers import (
     DoctorProfileSerializer, StaffProfileSerializer, StudentProfileSerializer,
     CaretakerProfileSerializer, UserSerializer, MyTokenObtainPairSerializer, 
-    SOSAlertSerializer,AppointmentCreateSerializer, AppointmentListSerializer,PrescriptionDetailSerializer, PrescriptionCreateSerializer, StaffStudentVitalsSerializer,DoctorListSerializer,DoctorScheduleSerializer
+    SOSAlertSerializer,AppointmentCreateSerializer, AppointmentListSerializer,PrescriptionDetailSerializer, PrescriptionCreateSerializer, StaffStudentVitalsSerializer,DoctorListSerializer,DoctorScheduleSerializer,UserSerializer
 )
 from channels.layers import get_channel_layer
 from django.views.decorators.csrf import csrf_exempt
@@ -104,14 +107,33 @@ def send_otp_email(user):
     except Exception as e:
         print(f"⚠️ Error sending OTP to {user.email}: {e}")
 
+# class SignupView(generics.CreateAPIView):
+#     queryset = User.objects.all()
+#     serializer_class = UserSerializer
+#     permission_classes = [AllowAny]
+#     def perform_create(self, serializer):
+#         user = serializer.save(is_active=False) 
+#         send_otp_email(user) # Send OTP on signup
 class SignupView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
-    def perform_create(self, serializer):
-        user = serializer.save(is_active=False) 
-        send_otp_email(user) # Send OTP on signup
 
+    def perform_create(self, serializer):
+        try:
+            # Attempt to save the user (which calls User.objects.create_user)
+            user = serializer.save(is_active=False) 
+            
+            # If successful, send the email
+            send_otp_email(user)
+            
+        except IntegrityError:
+            # If the database returns a duplicate key error (for username or email)
+            # We raise a DRF ValidationError, which automatically translates to a 
+            # 400 Bad Request error response with the correct message.
+            
+            # Note: This is a general catch. If you only want to check the username:
+            raise serializers.ValidationError({"username": "A user with this username already exists."})
 class VerifyOtpView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
