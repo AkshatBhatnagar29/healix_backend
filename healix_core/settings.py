@@ -439,7 +439,15 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+# In settings.py
 
+LANGUAGE_CODE = 'en-us'
+
+# CHANGE THIS LINE:
+TIME_ZONE = 'Asia/Kolkata' 
+
+USE_I18N = True
+USE_TZ = True
 ROOT_URLCONF = 'healix_core.urls'
 WSGI_APPLICATION = 'healix_core.wsgi.application'
 ASGI_APPLICATION = "healix_core.asgi.application"
