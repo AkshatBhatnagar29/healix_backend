@@ -73,6 +73,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         fields = [
             'roll_number', 'name', 'username', 'email', 'date_of_birth',
             'allergies', 'bmi', 'water_intake', 'sleep_hours',
+            'bp', 'temperature',
             'hostel_name', 'caretaker_id', 'caretaker_name', 'caretaker_phone'
         ]
         read_only_fields = ['roll_number', 'name', 'username', 'email', 'caretaker_id', 'caretaker_name', 'caretaker_phone']
@@ -459,7 +460,7 @@ class StaffStudentVitalsSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = StudentProfile
-        fields = ['bmi', 'water_intake', 'sleep_hours']
+        fields = ['bmi', 'water_intake', 'sleep_hours','bp', 'temperature']
 
 # --- ⭐️ ADD THIS NEW SERIALIZER ⭐️ ---
 class DoctorListSerializer(serializers.ModelSerializer):

@@ -72,7 +72,8 @@ class StudentProfile(models.Model):
     water_intake = models.FloatField(null=True, blank=True)
     sleep_hours = models.FloatField(null=True, blank=True)
     hostel = models.ForeignKey(Hostel, on_delete=models.SET_NULL, null=True, blank=True)
-
+    bp = models.CharField(max_length=20, blank=True, null=True, help_text="Blood Pressure e.g. 120/80")
+    temperature = models.FloatField(null=True, blank=True, help_text="Body Temperature in Fahrenheit")
     def __str__(self):
         return self.user.username
 

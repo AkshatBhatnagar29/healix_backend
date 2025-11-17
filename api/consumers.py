@@ -410,7 +410,7 @@ class CaretakerConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if hasattr(self, 'group_name'):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
-        print(f"👋 [CaretakerConsumer] Disconnected for {self.scope['user']}")
+        print(f" [CaretakerConsumer] Disconnected for {self.scope['user']}")
 
     async def receive(self, text_data):
         """
