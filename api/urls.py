@@ -15,7 +15,7 @@ urlpatterns = [
     path('doctor/profile/', views.DoctorProfileView.as_view(), name='doctor-profile'),
     path('staff/profile/', views.StaffProfileView.as_view(), name='staff-profile'),
     path('caretaker/profile/', views.CaretakerProfileView.as_view(), name='caretaker-profile'),
-    
+    path('student/available-slots/<str:username>/<str:date_str>/', views.get_available_slots, name='get-available-slots'),
     # Doctor Availability
     path('doctor/available/', views.set_doctor_available, name='doctor-available'),
     path('doctor/unavailable/', views.set_doctor_unavailable, name='doctor-unavailable'),
@@ -42,6 +42,7 @@ urlpatterns = [
     path('doctors/list-available/', views.AvailableDoctorListView.as_view(), name='doctor-list-available'),
     # GET /api/staff/doctors/
     path('staff/doctors/', views.DoctorListForStaffView.as_view(), name='staff-doctor-list'),
+    
 ]
     # Test & Deprecated
     # path('test-email/', views.test_email, name='test-email'),
