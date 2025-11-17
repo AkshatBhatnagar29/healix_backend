@@ -4,6 +4,7 @@ from .models import (
     DoctorProfile, StaffProfile, StudentProfile, CaretakerProfile, 
     Hostel, User, SOSAlert,DoctorSchedule, Appointment,Prescription
 )
+from rest_framework.exceptions import PermissionDenied
 from rest_framework import serializers
 # import datetime
 from django.db import IntegrityError
