@@ -1395,10 +1395,49 @@ class AppointmentPrescriptionDetailView(generics.RetrieveAPIView):
         raise PermissionDenied("You do not have access to this prescription.")
 
 # --- ⭐️ FIXED: Vitals Update View (Restricted Access) ⭐️ ---
+# class StaffStudentVitalsUpdateView(generics.RetrieveUpdateAPIView):
+#     """
+#     Allows staff to retrieve and update a student's vitals.
+#     RESTRICTION: Access is ONLY allowed if the student has an 'Upcoming' appointment TODAY.
+#     """
+#     queryset = StudentProfile.objects.all()
+#     serializer_class = StaffStudentVitalsSerializer
+#     permission_classes = [permissions.IsAuthenticated]
+#     lookup_field = 'user__username' 
+#     lookup_url_kwarg = 'username'
+
+#     def check_permissions(self, request):
+#         super().check_permissions(request)
+#         if request.user.role != 'staff':
+#             self.permission_denied(request, message="Only staff can access this.")
+
+#     def get_object(self):
+#         # 1. Retrieve the StudentProfile using the standard lookup (username)
+#         student_profile = super().get_object()
+        
+#         # 2. Perform the Appointment Check
+#         student_user = student_profile.user
+#         today = timezone.now().date()
+
+#         has_appointment = Appointment.objects.filter(
+#             student=student_user,
+#             status='Upcoming',
+#             appointment_time__date=today
+#         ).exists()
+
+#         # 3. If no appointment today, deny access entirely
+#         if not has_appointment:
+#             raise PermissionDenied(
+#                 "Access Denied: You can only view or update vitals if the student has an appointment scheduled for today."
+#             )
+
+#         return student_profile
+# In api/views.py
+
 class StaffStudentVitalsUpdateView(generics.RetrieveUpdateAPIView):
     """
     Allows staff to retrieve and update a student's vitals.
-    RESTRICTION: Access is ONLY allowed if the student has an 'Upcoming' appointment TODAY.
+    CHECK REMOVED: Now allows updating ANY student, regardless of appointment schedule.
     """
     queryset = StudentProfile.objects.all()
     serializer_class = StaffStudentVitalsSerializer
@@ -1407,32 +1446,15 @@ class StaffStudentVitalsUpdateView(generics.RetrieveUpdateAPIView):
     lookup_url_kwarg = 'username'
 
     def check_permissions(self, request):
+        # Keep the role check (Only Staff allowed)
         super().check_permissions(request)
         if request.user.role != 'staff':
             self.permission_denied(request, message="Only staff can access this.")
 
     def get_object(self):
-        # 1. Retrieve the StudentProfile using the standard lookup (username)
+        # Simply retrieve and return the profile without checking for appointments
         student_profile = super().get_object()
-        
-        # 2. Perform the Appointment Check
-        student_user = student_profile.user
-        today = timezone.now().date()
-
-        has_appointment = Appointment.objects.filter(
-            student=student_user,
-            status='Upcoming',
-            appointment_time__date=today
-        ).exists()
-
-        # 3. If no appointment today, deny access entirely
-        if not has_appointment:
-            raise PermissionDenied(
-                "Access Denied: You can only view or update vitals if the student has an appointment scheduled for today."
-            )
-
         return student_profile
-
 # --- Staff / Doctor Schedule Views ---
 class DoctorListForStaffView(generics.ListAPIView):
     """
