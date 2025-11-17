@@ -634,22 +634,44 @@ class AppointmentPrescriptionDetailView(generics.RetrieveAPIView):
 # In api/views.py
 # ... (Import StudentProfile, DoctorSchedule, DoctorScheduleSerializer, etc.)
 
-# --- ⭐️ ADD THIS NEW VIEW ⭐️ ---
 class StaffStudentVitalsUpdateView(generics.RetrieveUpdateAPIView):
     """
     Allows staff to retrieve and update a student's vitals.
-    Looks up the StudentProfile by the user's username.
+    RESTRICTION: Access is ONLY allowed if the student has an 'Upcoming' appointment TODAY.
     """
     queryset = StudentProfile.objects.all()
     serializer_class = StaffStudentVitalsSerializer
     permission_classes = [permissions.IsAuthenticated]
-    lookup_field = 'user__username' # Find profile by username
+    lookup_field = 'user__username' 
     lookup_url_kwarg = 'username'
 
     def check_permissions(self, request):
         super().check_permissions(request)
         if request.user.role != 'staff':
             self.permission_denied(request, message="Only staff can access this.")
+
+    def get_object(self):
+        # 1. Retrieve the StudentProfile using the standard lookup (username)
+        # This will raise 404 if the student doesn't exist.
+        student_profile = super().get_object()
+        
+        # 2. Perform the Appointment Check
+        student_user = student_profile.user
+        today = timezone.now().date()
+
+        has_appointment = Appointment.objects.filter(
+            student=student_user,
+            status='Upcoming',
+            appointment_time__date=today
+        ).exists()
+
+        # 3. If no appointment today, deny access entirely (403 Forbidden)
+        if not has_appointment:
+            raise PermissionDenied(
+                "Access Denied: You can only view or update vitals if the student has an appointment scheduled for today."
+            )
+
+        return student_profile
 
 # --- ⭐️ ADD THIS NEW VIEW ⭐️ ---
 class DoctorListForStaffView(generics.ListAPIView):

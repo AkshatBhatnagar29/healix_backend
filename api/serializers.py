@@ -371,15 +371,36 @@ class DoctorScheduleSerializer(serializers.ModelSerializer):
         fields = ['id', 'doctor', 'doctor_username', 'day_of_week', 'start_time', 'end_time']
         read_only_fields = ['doctor_username']
 
+# class AppointmentListSerializer(serializers.ModelSerializer):
+#     """
+#     Serializer for listing appointments, showing student details.
+#     """
+#     # Get student's full name from the 'student' (User) object
+#     student_name = serializers.CharField(source='student.get_full_name', read_only=True)
+#     student_id = serializers.CharField(source='student.username', read_only=True)
+    
+#     # Format the time for easier use on the frontend
+#     appointment_time = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S")
+
+#     class Meta:
+#         model = Appointment
+#         fields = [
+#             'id', 
+#             'student_name', 
+#             'student_id',
+#             'appointment_time', 
+#             'reason', 
+#             'status'
+#         ]
 class AppointmentListSerializer(serializers.ModelSerializer):
-    """
-    Serializer for listing appointments, showing student details.
-    """
-    # Get student's full name from the 'student' (User) object
     student_name = serializers.CharField(source='student.get_full_name', read_only=True)
     student_id = serializers.CharField(source='student.username', read_only=True)
     
-    # Format the time for easier use on the frontend
+    # --- ADD THESE TWO FIELDS ---
+    student_bp = serializers.CharField(source='student.student_profile.bp', read_only=True, allow_null=True)
+    student_temp = serializers.FloatField(source='student.student_profile.temperature', read_only=True, allow_null=True)
+    # ----------------------------
+
     appointment_time = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S")
 
     class Meta:
@@ -388,11 +409,12 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             'id', 
             'student_name', 
             'student_id',
+            'student_bp',    # <--- Include in fields
+            'student_temp',  # <--- Include in fields
             'appointment_time', 
             'reason', 
             'status'
         ]
-
 class PrescribedMedicationSerializer(serializers.ModelSerializer):
     """ Serializer for a single line of medication """
     class Meta:
