@@ -1204,48 +1204,38 @@ def get_turn_credentials(request):
         return Response({"error": str(e), "response_text": response_text}, status=500)
 
 # --- ⭐️ NEW: Available Doctors By Date (For Booking) ⭐️ ---
+# In api/views.py
+
 class AvailableDoctorsByDateView(APIView):
     """
-    Returns a list of doctors who have a schedule on the specific date provided.
-    Query Param: ?date=YYYY-MM-DD
+    Returns a direct LIST of doctors working on a specific date.
     """
     def get(self, request):
         date_str = request.query_params.get('date')
         
         if not date_str:
-            return Response({"error": "Date parameter is required (YYYY-MM-DD)"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Date parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # 1. Parse the date string from Flutter
+            # 1. Parse Date
             query_date = datetime.strptime(date_str, '%Y-%m-%d').date()
             
-            # 2. Get Python's weekday (0=Monday, 6=Sunday)
-            python_weekday = query_date.weekday()
-            
-            # 3. Convert to Your Model's ID (1=Monday, 7=Sunday)
-            model_day_id = python_weekday + 1 
+            # 2. Calculate Day ID (1=Monday...7=Sunday)
+            model_day_id = query_date.weekday() + 1 
 
-            print(f"Checking schedule for date: {query_date} (Day ID: {model_day_id})")
-
-            # 4. Find schedules for this day
+            # 3. Filter Doctors
             schedules = DoctorSchedule.objects.filter(day_of_week=model_day_id)
-            
-            # 5. Extract the doctor User objects
             doctor_ids = schedules.values_list('doctor', flat=True)
             doctors = User.objects.filter(id__in=doctor_ids)
 
-            # 6. Serialize
+            # 4. Serialize
             serializer = DoctorListSerializer(doctors, many=True)
             
-            return Response({
-                "success": True, 
-                "day_id": model_day_id,
-                "count": doctors.count(),
-                "doctors": serializer.data
-            })
+            # ⭐️ CHANGE HERE: Return the List directly ⭐️
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
         except ValueError:
-            return Response({"error": "Invalid date format. Use YYYY-MM-DD"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid date format"}, status=status.HTTP_400_BAD_REQUEST)
 
 # --- ⭐️ FIXED: Time Slots Logic (Timezone Aware) ⭐️ ---
 @api_view(['GET'])
